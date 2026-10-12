@@ -1,0 +1,1390 @@
+{
+  "schema_version": 1,
+  "description": "Billet benchmark corpus (SPEC.md 5.1): real STEP models, downloaded by bench/runner/billet_bench.py fetch into bench/corpus/ and verified by SHA-256. No model is committed.",
+  "selection": "33 of 58 verified candidates: 15 large (over 20 MB), 11 mid (1 to 20 MB) and 7 small parts. Excluded: non-commercial licenses, a license needing review, and assemblies over 60 MB, whose cost per benchmark run was too high. Per-model job rules are in docs/billet/decisions.md.",
+  "models": [
+    {
+      "id": "voron-legacy-assembly",
+      "name": "Voron Legacy full printer assembly",
+      "project": "VoronDesign/Voron-Legacy",
+      "file": "voron-legacy-assembly.step",
+      "url": "https://raw.githubusercontent.com/VoronDesign/Voron-Legacy/f89a32d7e21395170373096b9fd7d5918b2facdd/CAD/VORON_Legacy_Assembly.step",
+      "sha256": "82eecfd29123ebad857255a6cb8c75d16306254f040d4896cea26f4c33243e1d",
+      "bytes": 68872454,
+      "download_bytes": 68872454,
+      "license": "GPL-3.0",
+      "license_url": "https://github.com/VoronDesign/Voron-Legacy/blob/f89a32d7e21395170373096b9fd7d5918b2facdd/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Translation Framework v9.7.1.1290 (preprocessor: ST-DEVELOPER v18.1)",
+      "stress_tags": [
+        "many-solids",
+        "many-fillets",
+        "fasteners"
+      ],
+      "notes": "Direct .step (no zip). Fusion 360 export (older translator v9.7).",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.9700547325634682,
+          "edges": "7,18,21,22,31,33,35,36,38,39,41,42"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -0.9700547325634682,
+          "faces": "21"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 19.2
+    },
+    {
+      "id": "precious-plastic-extrusion-workspace",
+      "name": "Precious Plastic extrusion workspace",
+      "project": "ONEARMY/precious-plastic-kit",
+      "file": "precious-plastic-extrusion-workspace.step",
+      "url": "https://raw.githubusercontent.com/ONEARMY/precious-plastic-kit/4471659f928153867eee07f26c81dcec79793d76/7.%20Spaces/3.%20Extrusion/CAD%20Files/Extrusion%20workspace.stp",
+      "sha256": "dfec8d7dd1a7b9a4354bf5fdad0f221eff35d0670e0874e20a30cc0e33863941",
+      "bytes": 49520549,
+      "download_bytes": 49520549,
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://github.com/ONEARMY/precious-plastic-kit/blob/4471659f928153867eee07f26c81dcec79793d76/0.%20Start/License%20%26%20Disclaimer%20.pdf",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN]",
+      "originating_system": "unknown (blank originating_system; preprocessor: ST-DEVELOPER v15)",
+      "stress_tags": [
+        "many-solids",
+        "sheet-metal",
+        "weldments"
+      ],
+      "notes": "AP214; same licensing note as the shredder workspace.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 5.465868275788652,
+          "edges": "1,3,5,7,8,10,11,12"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -5.465868275788652,
+          "faces": "5"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 12.0
+    },
+    {
+      "id": "jubilee-frame-assembly",
+      "name": "Jubilee tool-changing motion platform frame",
+      "project": "machineagency/jubilee",
+      "file": "jubilee-frame-assembly.step",
+      "url": "https://raw.githubusercontent.com/machineagency/jubilee/c877bd2e889560c83da2a68479641a4f7f0d9b83/frame/cads/STEP/jubilee.STEP",
+      "sha256": "533417712183775a544802ae29a6f94d50ef0839bc2f24f68bce7a048798afea",
+      "bytes": 45857044,
+      "download_bytes": 45857044,
+      "license": "CC-BY-4.0",
+      "license_url": "https://github.com/machineagency/jubilee/blob/c877bd2e889560c83da2a68479641a4f7f0d9b83/license.txt",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN]",
+      "originating_system": "SolidWorks 2019 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "many-solids",
+        "fasteners",
+        "sheet-metal"
+      ],
+      "notes": "SolidWorks 2019 export of full machine frame. Attribution: 'Jubilee (c) Joshua Vasquez'.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 2.295980183685652,
+          "edges": "75,79,81,85,91,129,133,137"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -2.295980183685652,
+          "faces": "21"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 14.5
+    },
+    {
+      "id": "framework-16-graphics-module-assembly",
+      "name": "Framework Laptop 16 with Graphics Module (full system)",
+      "project": "FrameworkComputer/Framework-Laptop-16",
+      "file": "framework-16-graphics-module-assembly.step",
+      "url": "https://raw.githubusercontent.com/FrameworkComputer/Framework-Laptop-16/51a94f193c9546741429725485433019a5865d9f/Framework%20Laptop%2016%20with%20Graphics%20Module%20CAD.zip",
+      "archive": {
+        "file": "framework-16-graphics-module-assembly.zip",
+        "member": "Framework_16_all_DIS_asm_0408.stp"
+      },
+      "sha256": "7beaf9fa3d4f91c16150e1bd6c46df9e8fc6d931992db937db23b3a8a34a138e",
+      "bytes": 44592366,
+      "download_bytes": 8353403,
+      "license": "CC-BY-4.0",
+      "license_url": "https://github.com/FrameworkComputer/Framework-Laptop-16/blob/51a94f193c9546741429725485433019a5865d9f/README.md",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP203 [CONFIG_CONTROL_DESIGN]",
+      "originating_system": "CREO PARAMETRIC BY PTC INC, 2022484",
+      "stress_tags": [
+        "many-fillets",
+        "thin-walls",
+        "consumer-enclosure",
+        "many-solids"
+      ],
+      "notes": "ZIPPED (single entry Framework_16_all_DIS_asm_0408.stp, 44,592,366 bytes uncompressed per zip local header). Creo AP203. License stated in README (CC BY 4.0).",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 1.324293845165971,
+          "edges": "3,6,16,34,39,42,45,50,67,77,136,139"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -1.324293845165971,
+          "faces": "14"
+        }
+      },
+      "skip": [
+        "mesh-fine"
+      ],
+      "estimated_minutes": 26.8
+    },
+    {
+      "id": "zenodo-tendon-hand-testbench",
+      "name": "Test-bench for tendon-driven prosthetic hands",
+      "project": "Zenodo record 4718017",
+      "file": "zenodo-tendon-hand-testbench.step",
+      "url": "https://zenodo.org/records/4718017/files/Test-Bench%20for%20tendon%20prosth%20hands.STEP",
+      "sha256": "cb93f493bb4c8ad801584ef1a37d2822c8dcb8a02ea4e0091e8cd99756813bc5",
+      "bytes": 44568706,
+      "download_bytes": 44568706,
+      "license": "CC-BY-4.0",
+      "license_url": "https://zenodo.org/records/4718017",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN]",
+      "originating_system": "SolidWorks 2020 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "many-solids",
+        "fasteners"
+      ],
+      "notes": "Zenodo record file (immutable per record version; DOI 10.5281/zenodo.4718017). SolidWorks 2020 AP214. Zenodo rate-limits aggressive clients (got HTTP 403 'unusual traffic' during this survey) -- throttle downloads.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -2.311363234827451,
+          "faces": "147"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 4.9
+    },
+    {
+      "id": "luxonis-oak-d-iot-75-enclosure",
+      "name": "Luxonis OAK-D-IoT-75 enclosure top assembly",
+      "project": "luxonis/oak-hardware",
+      "file": "luxonis-oak-d-iot-75-enclosure.step",
+      "url": "https://raw.githubusercontent.com/luxonis/oak-hardware/7d569e3ccdff30014a498dc6c64a2e0dcad6964c/DM1098OBC_DepthAI_USB3C_WIFI/Mechanical/OAK-D-IOT-75_enclosure.stp",
+      "sha256": "1052dbc77c6dea5c912746d0eff95732c5ee55675e760761ccf9993071ce11d1",
+      "bytes": 38618368,
+      "download_bytes": 38618368,
+      "license": "MIT",
+      "license_url": "https://github.com/luxonis/oak-hardware/blob/7d569e3ccdff30014a498dc6c64a2e0dcad6964c/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP203 [CONFIG_CONTROL_DESIGN]",
+      "originating_system": "CREO PARAMETRIC BY PTC INC, 2020154",
+      "stress_tags": [
+        "many-fillets",
+        "consumer-enclosure",
+        "injection-molded",
+        "thin-walls",
+        "many-solids"
+      ],
+      "notes": "Creo Parametric AP203 export of a camera enclosure + internals. Repo renamed from luxonis/depthai-hardware.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 9.8
+    },
+    {
+      "id": "thelio-mira-magnet-assembly",
+      "name": "System76 Thelio Mira magnet/chassis assembly",
+      "project": "system76/thelio",
+      "file": "thelio-mira-magnet-assembly.step",
+      "url": "https://media.githubusercontent.com/media/system76/thelio/fe3ddb398e3b5513129cef6b9a1daa3ec8a3f253/Thelio%20Mira/Thelio%20Mira/Mira%20Magnet%20Assembly.step",
+      "sha256": "a52f5c7e20d6f20095140332fe91b64ee7e5ccfc1f6febe835638752b2106dcc",
+      "bytes": 33972278,
+      "download_bytes": 33972278,
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://github.com/system76/thelio/blob/fe3ddb398e3b5513129cef6b9a1daa3ec8a3f253/LICENSE.md",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Translation Framework v14.21.0.0 (preprocessor: ST-DEVELOPER v20.1)",
+      "stress_tags": [
+        "many-solids",
+        "sheet-metal",
+        "thin-walls"
+      ],
+      "notes": "LFS-hosted. Fusion 360 export.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.5421724202593031,
+          "edges": "1,3,46,60,63,77,80,83,86,134,138,142"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 16.1
+    },
+    {
+      "id": "ender3-assembly-ap203",
+      "name": "Creality Ender-3 assembly (AP203 export)",
+      "project": "Creality3DPrinting/Ender-3",
+      "file": "ender3-assembly-ap203.step",
+      "url": "https://raw.githubusercontent.com/Creality3DPrinting/Ender-3/88c7758cea9d0d00a54fdb238bedb3b33425f409/Ender-3%20Mechanical/STP/Ender3.STEP",
+      "sha256": "7e868f30a44f0e6b1dd0daf8af1d7810ad9a754cc6fa066f6ef4d2b81e3297af",
+      "bytes": 29867304,
+      "download_bytes": 29867304,
+      "license": "GPL-3.0",
+      "license_url": "https://github.com/Creality3DPrinting/Ender-3/blob/88c7758cea9d0d00a54fdb238bedb3b33425f409/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP203 [CONFIG_CONTROL_DESIGN]",
+      "originating_system": "SolidWorks 2016 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "many-solids",
+        "sheet-metal",
+        "injection-molded"
+      ],
+      "notes": "Same product as ender3-main-assembly-ap214 but older SolidWorks 2016 AP203 export (CONFIG_CONTROL_DESIGN) -- useful for AP203 vs AP214 import comparison.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.7439395145848903,
+          "edges": "47,48,49,50,53,54,55,59,71,72,74,95"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 6.6
+    },
+    {
+      "id": "voron-stealthburner-cw2-assembly",
+      "name": "Voron Stealthburner toolhead + Clockwork2 extruder assembly",
+      "project": "VoronDesign/Voron-Stealthburner",
+      "file": "voron-stealthburner-cw2-assembly.step",
+      "url": "https://raw.githubusercontent.com/VoronDesign/Voron-Stealthburner/8bcb9c246fac19d8ac03931ef97fa07c5e5f0f2b/CAD/Stealthburner_CW2_Assembly.step",
+      "sha256": "526fe18bd11c046deba0a2b193fa3874e8f6d6e5a282fbdc25f06fe5acb3021d",
+      "bytes": 26745618,
+      "download_bytes": 26745618,
+      "license": "GPL-3.0",
+      "license_url": "https://github.com/VoronDesign/Voron-Stealthburner/blob/8bcb9c246fac19d8ac03931ef97fa07c5e5f0f2b/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Translation Framework v12.9.0.99 (preprocessor: ST-DEVELOPER v20)",
+      "stress_tags": [
+        "many-fillets",
+        "organic-surfaces",
+        "tangent-faces",
+        "thin-walls",
+        "many-solids"
+      ],
+      "notes": "Stealthburner is known for sculpted, heavily filleted printed shells (tags inferred from the design, not computed). Fusion 360.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-cut": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-fuse": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 5.8
+    },
+    {
+      "id": "odri-biped-6dof",
+      "name": "ODRI 6-DoF biped robot",
+      "project": "open-dynamic-robot-initiative/open_robot_actuator_hardware",
+      "file": "odri-biped-6dof.step",
+      "url": "https://raw.githubusercontent.com/open-dynamic-robot-initiative/open_robot_actuator_hardware/66af1522b4fba0ec4a1d7790e66f5e4652208d30/mechanics/biped_6dof_v1/cad_files/STEP/biped_6dof_v1.STEP",
+      "sha256": "b5018637f72dce223c2b4dccebe5d01c362c455ec6c7bd1ff14ffcce854643fa",
+      "bytes": 26548352,
+      "download_bytes": 26548352,
+      "license": "BSD-3-Clause",
+      "license_url": "https://github.com/open-dynamic-robot-initiative/open_robot_actuator_hardware/blob/66af1522b4fba0ec4a1d7790e66f5e4652208d30/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN]",
+      "originating_system": "SolidWorks 2020 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "many-solids",
+        "fasteners",
+        "gears"
+      ],
+      "notes": "SolidWorks 2020 export; research robot with actuator modules. Copyright NYU and Max Planck Gesellschaft.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-cut": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-fuse": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.7680739269177349,
+          "edges": "290,298,330,475,479,487,502,537,549,680,681,862"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 5.3
+    },
+    {
+      "id": "launch-keyboard-v1-assembly",
+      "name": "System76 Launch keyboard V1 chassis assembly",
+      "project": "system76/launch",
+      "file": "launch-keyboard-v1-assembly.step",
+      "url": "https://media.githubusercontent.com/media/system76/launch/04dc963adad49b6c8c81e77382fb644e48d4f98b/chassis/launch/CAD/Launch%20V1.step",
+      "sha256": "a069900a018051508dff9ae1fff5d0446250d27c13933d37f27b23c90b0c2a16",
+      "bytes": 23055006,
+      "download_bytes": 23055006,
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://github.com/system76/launch/blob/04dc963adad49b6c8c81e77382fb644e48d4f98b/chassis/LICENSE.md",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Translation Framework v9.7.1.1290 (preprocessor: ST-DEVELOPER v18.1)",
+      "stress_tags": [
+        "many-solids",
+        "many-fillets",
+        "machined-aluminum",
+        "consumer-enclosure"
+      ],
+      "notes": "LFS-hosted. chassis/ is CC-BY-SA-4.0 (repo root is GPL-3.0 for firmware/PCB). Fusion 360.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.9894050635095266,
+          "edges": "192,210,234,240,246,285,291,293,295,301,305,313"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -0.9894050635095266,
+          "faces": "42"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 17.0
+    },
+    {
+      "id": "framework-13-assembly",
+      "name": "Framework Laptop 13 external CAD",
+      "project": "FrameworkComputer/Framework-Laptop-13",
+      "file": "framework-13-assembly.step",
+      "url": "https://raw.githubusercontent.com/FrameworkComputer/Framework-Laptop-13/9680262347b80efe2314673bf1f26eb955165fca/Framework%20Laptop%2013%20CAD.stp",
+      "sha256": "19778e9a7c8f229451922b42717647c7cf9f4a7ef05a09a36c368d4480127f31",
+      "bytes": 21301844,
+      "download_bytes": 21301844,
+      "license": "CC-BY-4.0",
+      "license_url": "https://github.com/FrameworkComputer/Framework-Laptop-13/blob/9680262347b80efe2314673bf1f26eb955165fca/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP203 [CONFIG_CONTROL_DESIGN]",
+      "originating_system": "CREO PARAMETRIC BY PTC INC, 2022484",
+      "stress_tags": [
+        "many-fillets",
+        "thin-walls",
+        "tangent-faces",
+        "consumer-enclosure"
+      ],
+      "notes": "Creo Parametric AP203. Just over the 20 MB threshold.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 1.093249619715527,
+          "edges": "2,3,5,6,7,9,10,12,13,15,18,20"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -1.093249619715527,
+          "faces": "2"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 7.1
+    },
+    {
+      "id": "precious-plastic-shredder-7mm-mesh",
+      "name": "Precious Plastic Shredder Pro 7 mm perforated mesh (single part)",
+      "project": "ONEARMY/precious-plastic-kit",
+      "file": "precious-plastic-shredder-7mm-mesh.step",
+      "url": "https://raw.githubusercontent.com/ONEARMY/precious-plastic-kit/4471659f928153867eee07f26c81dcec79793d76/3.%20Build/5.%20Shredder%20Pro/Shredder%20Pro%20Files/1.%203D%20CAD/STEP/SHRPRO-V1%201140.07-A%207mm%20Mesh.step",
+      "sha256": "7ec73f9b7cc8c7528869cd4860ac3bbabe02e87478498339c027d368a30cae33",
+      "bytes": 20706933,
+      "download_bytes": 20706933,
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://github.com/ONEARMY/precious-plastic-kit/blob/4471659f928153867eee07f26c81dcec79793d76/0.%20Start/License%20%26%20Disclaimer%20.pdf",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "part",
+      "step_schema": "AP203 [CONFIG_CONTROL_DESIGN]",
+      "originating_system": "SolidWorks 2018 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "many-holes",
+        "sheet-metal",
+        "thin-walls",
+        "boolean-heavy"
+      ],
+      "notes": "20.7 MB for a single laser-cut sheet => presumably thousands of holes/faces (inferred from size); boolean/BRepCheck/meshing stress. SolidWorks 2018 AP203. Counts as 'large' by bytes but is a PART.",
+      "ops": {
+        "bool-cut": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.9910647475028385,
+          "edges": "2142,2144,2145,2147,2148,2150,2151,2152,2324,2420,2426,2618"
+        }
+      },
+      "skip": [
+        "bool-common",
+        "bool-fuse",
+        "shell"
+      ],
+      "estimated_minutes": 8.2
+    },
+    {
+      "id": "so-arm101-assembly",
+      "name": "SO-ARM101 robot arm assembly",
+      "project": "TheRobotStudio/SO-ARM100",
+      "file": "so-arm101-assembly.step",
+      "url": "https://raw.githubusercontent.com/TheRobotStudio/SO-ARM100/a758567c3978dfeefe282ede0500085a48fe8f78/STEP/SO101/SO101%20Assembly.step",
+      "sha256": "f754be35708382b05ce65768ae33c612f91dca11ad19d14807dc637eb944ba3d",
+      "bytes": 20496014,
+      "download_bytes": 20496014,
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/TheRobotStudio/SO-ARM100/blob/a758567c3978dfeefe282ede0500085a48fe8f78/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Translation Framework v14.4.0.0 (preprocessor: ST-DEVELOPER v20.1)",
+      "stress_tags": [
+        "many-fillets",
+        "organic-surfaces",
+        "many-solids"
+      ],
+      "notes": "Fusion 360 export, 3D-printed arm links + servos. 20.5 MB, just over threshold.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.47540912998344687,
+          "edges": "749,751,755,757,782,792,1353,1355,1358,1382,1383,1393"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 6.6
+    },
+    {
+      "id": "thelio-mega-r4-component-assembly-ap242",
+      "name": "System76 Thelio Mega R4 component assembly (AP242)",
+      "project": "system76/thelio",
+      "file": "thelio-mega-r4-component-assembly-ap242.step",
+      "url": "https://media.githubusercontent.com/media/system76/thelio/fe3ddb398e3b5513129cef6b9a1daa3ec8a3f253/Thelio%20Mega/N3_US002708/R4/Mega%20R4%20Component%20Assembly%20v55.step",
+      "sha256": "ff29a2bf8c7de441891dddddb0aa562c13d85fa1685cd791c6eca5fe5ecd56f5",
+      "bytes": 20052315,
+      "download_bytes": 20052315,
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://github.com/system76/thelio/blob/fe3ddb398e3b5513129cef6b9a1daa3ec8a3f253/LICENSE.md",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "large",
+      "kind": "assembly",
+      "step_schema": "AP242 [AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 1 1 4 }]",
+      "originating_system": "Autodesk Translation Framework v13.20.0.188 (preprocessor: ST-DEVELOPER v20)",
+      "stress_tags": [
+        "many-solids",
+        "sheet-metal",
+        "thin-walls"
+      ],
+      "notes": "LFS-hosted. AP242 (Fusion 360). 20,052,315 bytes -- right at the 20 MB boundary.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -1.9694256645395989,
+          "faces": "36"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 10.1
+    },
+    {
+      "id": "adafruit-fruit-jam-case",
+      "name": "Adafruit Fruit Jam case (with board)",
+      "project": "adafruit/Adafruit_CAD_Parts",
+      "file": "adafruit-fruit-jam-case.step",
+      "url": "https://raw.githubusercontent.com/adafruit/Adafruit_CAD_Parts/c128bceb1f96b6ea8b68f250bda986ba85da24ea/6425%20Fruit%20Jam%20Case/6425%20Fruit%20Jam%20Case.step",
+      "sha256": "37bb62e1ec8ffed527d532f14a83babf7265a2a811f501ff3311c50b064cedab",
+      "bytes": 13704994,
+      "download_bytes": 13704994,
+      "license": "MIT",
+      "license_url": "https://github.com/adafruit/Adafruit_CAD_Parts/blob/c128bceb1f96b6ea8b68f250bda986ba85da24ea/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Translation Framework v14.10.0.0 (preprocessor: ST-DEVELOPER v20.1)",
+      "stress_tags": [
+        "consumer-enclosure",
+        "many-fillets",
+        "thin-walls",
+        "pcb-assembly"
+      ],
+      "notes": "Fusion 360 export; 3D-printable enclosure plus PCB model.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid"
+        },
+        "bool-cut": {
+          "select": "largest-solid"
+        },
+        "bool-fuse": {
+          "select": "largest-solid"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.33338800982874545,
+          "edges": "314,316,318,320,410,609,658,823,898,943,958,967"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -0.33338800982874545,
+          "faces": "342"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 5.1
+    },
+    {
+      "id": "thor-art56-gear-plate",
+      "name": "Thor robot arm Art5/6 gear plate",
+      "project": "AngelLM/Thor",
+      "file": "thor-art56-gear-plate.step",
+      "url": "https://raw.githubusercontent.com/AngelLM/Thor/286b081fe6f056d87c379b884781ef77ff6a0159/step/Art56GearPlate.step",
+      "sha256": "19103dc678e50484aff74e6f4522fcd7a648c039e843d5a5a2e3810acd2dd996",
+      "bytes": 13412571,
+      "download_bytes": 13412571,
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://github.com/AngelLM/Thor/blob/286b081fe6f056d87c379b884781ef77ff6a0159/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }]",
+      "originating_system": "FreeCAD (preprocessor: Open CASCADE STEP processor 7.5)",
+      "stress_tags": [
+        "gears",
+        "many-faces"
+      ],
+      "notes": "13.4 MB single printed part (FreeCAD / OCCT 7.5 export) -- dense gear-tooth geometry.",
+      "ops": {
+        "bool-common": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-cut": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-fuse": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.6086619563855931,
+          "edges": "135,457,458,460,461,468,471,482,493,517,522,523"
+        }
+      },
+      "skip": [
+        "shell"
+      ],
+      "estimated_minutes": 0.8
+    },
+    {
+      "id": "nist-ftc-09-ap242",
+      "name": "NIST FTC-09 fully-toleranced test case (AP242 + PMI)",
+      "project": "NIST MBE PMI test system",
+      "file": "nist-ftc-09-ap242.step",
+      "url": "https://media.githubusercontent.com/media/bldrs-ai/test-models/1bdbcfca380ae508404af66d252da9b9be958801/step/nist/NIST-PMI-STEP-Files/nist_ftc_09_asme1_ap242-e1.stp",
+      "sha256": "f1215fe15a78085a9fa78dd81714caf774b59071be92580b04ebfdc19f52a1bd",
+      "bytes": 6109836,
+      "download_bytes": 6109836,
+      "license": "NIST-PD",
+      "license_url": "https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing/download-free-cad",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP242 [AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF {1 0 10303 442 1 1 4 }]",
+      "originating_system": "unknown (blank in FILE_NAME)",
+      "stress_tags": [
+        "pmi",
+        "many-features",
+        "machined"
+      ],
+      "notes": "NIST MBE PMI test part. URL = commit-pinned Git LFS mirror in bldrs-ai/test-models (mirror repo has no license; byte identity with NIST not checked). Upstream: NIST-PMI-STEP-Files.zip (see caveats).",
+      "ops": {
+        "bool-common": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 1.0145316889864027,
+          "edges": "18,20,32,34,46,48,60,62,191,192,208,210"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -1.0145316889864027,
+          "faces": "121"
+        }
+      },
+      "skip": [
+        "bool-cut",
+        "bool-fuse"
+      ],
+      "estimated_minutes": 0.6
+    },
+    {
+      "id": "luxonis-oak-d-sr-enclosure",
+      "name": "Luxonis OAK-D-SR enclosure assembly",
+      "project": "luxonis/oak-hardware",
+      "file": "luxonis-oak-d-sr-enclosure.step",
+      "url": "https://raw.githubusercontent.com/luxonis/oak-hardware/7d569e3ccdff30014a498dc6c64a2e0dcad6964c/DM2080_OAK_D_SR/Mechanical/DM2080_enclosure.stp",
+      "sha256": "b106830b3945036661d08ce8dda86e290286d349b798f246457f5a84dcc44489",
+      "bytes": 5204507,
+      "download_bytes": 5204507,
+      "license": "MIT",
+      "license_url": "https://github.com/luxonis/oak-hardware/blob/7d569e3ccdff30014a498dc6c64a2e0dcad6964c/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "assembly",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN]",
+      "originating_system": "SolidWorks 2022 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "consumer-enclosure",
+        "many-fillets",
+        "thin-walls"
+      ],
+      "notes": "SolidWorks 2022 AP214.",
+      "ops": {
+        "bool-common": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-cut": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-fuse": {
+          "select": "largest-solid",
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.2372462579706431,
+          "edges": "401,416,583,641,665,703,706,709,761,1040,1046,1235"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 2.3
+    },
+    {
+      "id": "nist-stc-10-ap242",
+      "name": "NIST STC-10 simplified test case (AP242 e2 + PMI)",
+      "project": "NIST MBE PMI test system",
+      "file": "nist-stc-10-ap242.step",
+      "url": "https://media.githubusercontent.com/media/bldrs-ai/test-models/1bdbcfca380ae508404af66d252da9b9be958801/step/nist/NIST-PMI-STEP-Files/nist_stc_10_asme1_ap242-e2.stp",
+      "sha256": "fba4f46cab1ce1402362038036884631b4a41afe1c9efc5681d358c39db7ed5f",
+      "bytes": 4875056,
+      "download_bytes": 4875056,
+      "license": "NIST-PD",
+      "license_url": "https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing/download-free-cad",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP242 [AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 3 1 4 }]",
+      "originating_system": "unknown (blank in FILE_NAME)",
+      "stress_tags": [
+        "pmi",
+        "many-features",
+        "machined"
+      ],
+      "notes": "NIST MBE PMI test part. URL = commit-pinned Git LFS mirror in bldrs-ai/test-models (mirror repo has no license; byte identity with NIST not checked). Upstream: NIST-PMI-STEP-Files.zip (see caveats).",
+      "ops": {
+        "bool-common": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.5390599688297352,
+          "edges": "14,45,130,134,145,151,165,173,390,397,399,401"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -0.5390599688297352,
+          "faces": "90"
+        }
+      },
+      "skip": [
+        "bool-cut",
+        "bool-fuse"
+      ],
+      "estimated_minutes": 0.4
+    },
+    {
+      "id": "ender3-hand-twisted-nut",
+      "name": "Ender-3 hand-twisted (knurled) bed nut",
+      "project": "Creality3DPrinting/Ender-3",
+      "file": "ender3-hand-twisted-nut.step",
+      "url": "https://raw.githubusercontent.com/Creality3DPrinting/Ender-3/88c7758cea9d0d00a54fdb238bedb3b33425f409/Ender-3%20Mechanical/STP/Hand%20Twisted%20Nut.step",
+      "sha256": "ce237668b20c06b25b97815765267418e609ff07210a1d60ec4458af2f55d90a",
+      "bytes": 4280898,
+      "download_bytes": 4280898,
+      "license": "GPL-3.0",
+      "license_url": "https://github.com/Creality3DPrinting/Ender-3/blob/88c7758cea9d0d00a54fdb238bedb3b33425f409/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN]",
+      "originating_system": "SolidWorks 2016 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "many-faces",
+        "knurl-likely"
+      ],
+      "notes": "4.3 MB for a thumb nut implies dense (likely knurled/threaded) geometry; inferred from size, not inspected. SolidWorks 2016.",
+      "ops": {
+        "bool-common": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-cut": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-fuse": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.2563745675537249,
+          "edges": "884,885,887,905,980,982,1042,1053,1061,1075,1735,1737"
+        }
+      },
+      "skip": [
+        "shell"
+      ],
+      "estimated_minutes": 2.4
+    },
+    {
+      "id": "freecad-plastic-bottle",
+      "name": "Plastic bottle (blow-molded, thin wall)",
+      "project": "FreeCAD/FreeCAD-library",
+      "file": "freecad-plastic-bottle.step",
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD-library/f5ca01cdcaa2f69b9295a6382719c2d90628780c/Generic%20objects/plastic_bottle.step",
+      "sha256": "4684bbaedd419ac847cfbf0f4fd2e4823a11d91fb19f53cb9b6b9b762b77882d",
+      "bytes": 4091856,
+      "download_bytes": 4091856,
+      "license": "CC-BY-3.0",
+      "license_url": "https://github.com/FreeCAD/FreeCAD-library/blob/f5ca01cdcaa2f69b9295a6382719c2d90628780c/LICENSE-Assets",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP214 (CC2 draft schema id) [AUTOMOTIVE_DESIGN_CC2 { 1 2 10303 214 -1 1 5 4 }]",
+      "originating_system": "FreeCAD (preprocessor: Open CASCADE STEP processor 6.8)",
+      "stress_tags": [
+        "thin-walls",
+        "organic-surfaces",
+        "tangent-faces"
+      ],
+      "notes": "FreeCAD/OCCT 6.8 export (AUTOMOTIVE_DESIGN_CC2 schema id). Attribution per part author (git history).",
+      "ops": {
+        "bool-common": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-cut": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "bool-fuse": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.662786621105422,
+          "edges": "1219,1220,1222,1225,1226,1230,1232,1235,1257,1259,1261,1312"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -0.662786621105422,
+          "faces": "169"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 4.0
+    },
+    {
+      "id": "prusa-cw1-rear-cover",
+      "name": "Prusa CW1 rear cover (sheet-metal weldment)",
+      "project": "prusa3d/Original-Prusa-CW1",
+      "file": "prusa-cw1-rear-cover.step",
+      "url": "https://raw.githubusercontent.com/prusa3d/Original-Prusa-CW1/a7493605c046df34e3d93fcdf99599c78ccd857c/SHEET%20METAL/CW1-201-MA_v007%20REAR%20COVER.STEP",
+      "sha256": "e285a460868591034fe4d15c660025036458deb03c8d3bddffe4358599a9e45d",
+      "bytes": 3862961,
+      "download_bytes": 3862961,
+      "license": "GPL-2.0",
+      "license_url": "https://github.com/prusa3d/Original-Prusa-CW1/blob/a7493605c046df34e3d93fcdf99599c78ccd857c/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP203 [CONFIG_CONTROL_DESIGN]",
+      "originating_system": "SolidWorks 2017 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "sheet-metal",
+        "thin-walls",
+        "bends",
+        "many-holes"
+      ],
+      "notes": "SolidWorks 2017 AP203 ('SVAR' = welded; may contain multiple bodies).",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 1.3660944937460664,
+          "edges": "70,74,94,98,118,122,239,240,902,904,954,956"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -1.3660944937460664,
+          "faces": "70"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 4.9
+    },
+    {
+      "id": "launch-keyboard-aluminum-chassis",
+      "name": "System76 Launch machined aluminum chassis KEYALU-001001",
+      "project": "system76/launch",
+      "file": "launch-keyboard-aluminum-chassis.step",
+      "url": "https://media.githubusercontent.com/media/system76/launch/04dc963adad49b6c8c81e77382fb644e48d4f98b/chassis/launch/CAD/KEYALU-001001.step",
+      "sha256": "9b3f5618f4f4280b8a94d114ca4b305f96a37cf538c34be9bcd03ebadecdc97d",
+      "bytes": 3568620,
+      "download_bytes": 3568620,
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://github.com/system76/launch/blob/04dc963adad49b6c8c81e77382fb644e48d4f98b/chassis/LICENSE.md",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Translation Framework v9.7.1.1290 (preprocessor: ST-DEVELOPER v18.1)",
+      "stress_tags": [
+        "many-fillets",
+        "pockets",
+        "machined-aluminum",
+        "consumer-enclosure"
+      ],
+      "notes": "LFS-hosted. Part-number prefix KEYALU suggests the aluminum keyboard chassis (inferred); expect machined pockets/fillets. Fusion 360.",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 1.0104731652140748,
+          "edges": "1391,2022,2026,3747,3785,3819,4084,4125,4209,4281,4289,4296"
+        }
+      },
+      "skip": [
+        "shell"
+      ],
+      "estimated_minutes": 4.4
+    },
+    {
+      "id": "nist-ctc-02-ap203",
+      "name": "NIST CTC-02 combined test case (AP203 e2 + PMI)",
+      "project": "NIST MBE PMI test system",
+      "file": "nist-ctc-02-ap203.step",
+      "url": "https://media.githubusercontent.com/media/bldrs-ai/test-models/1bdbcfca380ae508404af66d252da9b9be958801/step/nist/NIST-PMI-STEP-Files/AP203%20with%20PMI/nist_ctc_02_asme1_ap203.stp",
+      "sha256": "ae0049980cb11cb224447e1738b499d8e1c79423782b7a8e8489a4d5316660cc",
+      "bytes": 3361535,
+      "download_bytes": 3361535,
+      "license": "NIST-PD",
+      "license_url": "https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing/download-free-cad",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP203e2 [AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF { 1 0 10303 403 2 1 2}]",
+      "originating_system": "unknown (blank in FILE_NAME)",
+      "stress_tags": [
+        "pmi",
+        "machined",
+        "many-holes"
+      ],
+      "notes": "NIST MBE PMI test part. URL = commit-pinned Git LFS mirror in bldrs-ai/test-models (mirror repo has no license; byte identity with NIST not checked). Upstream: NIST-PMI-STEP-Files.zip (see caveats).",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 3.5016425026556965,
+          "edges": "1,3,171,400,402,403,404,408,409,411,423,438"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -3.5016425026556965,
+          "faces": "19"
+        }
+      },
+      "skip": [
+        "bool-common",
+        "bool-cut",
+        "bool-fuse"
+      ],
+      "estimated_minutes": 0.7
+    },
+    {
+      "id": "ender3-extruder-housing",
+      "name": "Ender-3 extruder housing",
+      "project": "Creality3DPrinting/Ender-3",
+      "file": "ender3-extruder-housing.step",
+      "url": "https://raw.githubusercontent.com/Creality3DPrinting/Ender-3/88c7758cea9d0d00a54fdb238bedb3b33425f409/Ender-3%20Mechanical/STP/E%20housing.step",
+      "sha256": "f8438ba893f55311ee4a605eb5b703a30d4d0f19d8b95bd7833981abbc990d4d",
+      "bytes": 1898129,
+      "download_bytes": 1898129,
+      "license": "GPL-3.0",
+      "license_url": "https://github.com/Creality3DPrinting/Ender-3/blob/88c7758cea9d0d00a54fdb238bedb3b33425f409/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "mid",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN]",
+      "originating_system": "SolidWorks 2016 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "injection-molded",
+        "many-fillets",
+        "thin-walls"
+      ],
+      "notes": "SolidWorks 2016 AP214.",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.22606669667157808,
+          "edges": "38,40,44,242,244,588,590,593,632,645,651,654"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -0.22606669667157808,
+          "faces": "11"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 1.6
+    },
+    {
+      "id": "prusa-mk3s-fan-shroud",
+      "name": "Prusa i3 MK3S fan shroud",
+      "project": "prusa3d/Original-Prusa-i3",
+      "file": "prusa-mk3s-fan-shroud.step",
+      "url": "https://raw.githubusercontent.com/prusa3d/Original-Prusa-i3/529e5ad6892ce3b25015b7cca7f0481b8335a76c/Printed-Parts/STEP/fan-shroud.stp",
+      "sha256": "351e6a6b70abaf6a0d9817a35d6acb0f77a4440ce9351522e25ebf9c0a59e865",
+      "bytes": 361601,
+      "download_bytes": 361601,
+      "license": "GPL-2.0",
+      "license_url": "https://github.com/prusa3d/Original-Prusa-i3/blob/529e5ad6892ce3b25015b7cca7f0481b8335a76c/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "small",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Inventor 2021 (preprocessor: ST-DEVELOPER v18.1)",
+      "stress_tags": [
+        "thin-walls",
+        "organic-surfaces",
+        "shell-candidate"
+      ],
+      "notes": "Inventor 2021. Ducted thin-wall part; good shelling/fillet test.",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.16556038052501273,
+          "edges": "2,44,47,56,63,112,116,118,129,194,415,417"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -0.16556038052501273,
+          "faces": "31"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 1.2
+    },
+    {
+      "id": "jubilee-wedge-plate-with-drafts",
+      "name": "Jubilee tool wedge plate (injection-molded variant with drafts)",
+      "project": "machineagency/jubilee",
+      "file": "jubilee-wedge-plate-with-drafts.step",
+      "url": "https://raw.githubusercontent.com/machineagency/jubilee/c877bd2e889560c83da2a68479641a4f7f0d9b83/tools/jubilee_tools/tool_template/fabrication_exports/injection_molded_parts/wedge_plate/wedge_plate_with_drafts.STEP",
+      "sha256": "2741766602a59efa8f6861285e39e577f7091bfcaabe52254857ba7eb0bdbdec",
+      "bytes": 285105,
+      "download_bytes": 285105,
+      "license": "CC-BY-4.0",
+      "license_url": "https://github.com/machineagency/jubilee/blob/c877bd2e889560c83da2a68479641a4f7f0d9b83/license.txt",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "small",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN]",
+      "originating_system": "SolidWorks 2019 (preprocessor: SwSTEP 2.0)",
+      "stress_tags": [
+        "injection-molded",
+        "drafts",
+        "many-fillets",
+        "tangent-faces"
+      ],
+      "notes": "SolidWorks 2019. Explicitly designed for injection molding (draft angles); a non-draft twin wedge_plate.STEP sits beside it.",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.11761469577954504,
+          "edges": "10,17,24,40,42,44,46,47,49,59,69,74"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 0.6
+    },
+    {
+      "id": "nist-ctc-01-ap242",
+      "name": "NIST CTC-01 combined test case (AP242 + PMI)",
+      "project": "NIST MBE PMI test system",
+      "file": "nist-ctc-01-ap242.step",
+      "url": "https://media.githubusercontent.com/media/bldrs-ai/test-models/1bdbcfca380ae508404af66d252da9b9be958801/step/nist/NIST-PMI-STEP-Files/nist_ctc_01_asme1_ap242-e1.stp",
+      "sha256": "85a5752da05f53c456ca3a9e038c90358e1d5a3141d1f0d6e5f0970f2356e821",
+      "bytes": 396445,
+      "download_bytes": 396445,
+      "license": "NIST-PD",
+      "license_url": "https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing/download-free-cad",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "small",
+      "kind": "part",
+      "step_schema": "AP242 [AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 1 1 4 }]",
+      "originating_system": "unknown (blank in FILE_NAME)",
+      "stress_tags": [
+        "pmi",
+        "machined"
+      ],
+      "notes": "NIST MBE PMI test part. URL = commit-pinned Git LFS mirror in bldrs-ai/test-models (mirror repo has no license; byte identity with NIST not checked). Upstream: NIST-PMI-STEP-Files.zip (see caveats).",
+      "ops": {
+        "bool-common": {
+          "translate": "0.5,0.35,0.25"
+        },
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 2.7901612865639156,
+          "edges": "14,23,24,25,32,39,40,41,70,99,134,167"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -2.7901612865639156,
+          "faces": "5"
+        }
+      },
+      "skip": [
+        "bool-cut",
+        "bool-fuse"
+      ],
+      "estimated_minutes": 0.2
+    },
+    {
+      "id": "kicad-heatsink-125x35x50",
+      "name": "KiCad 3D model: finned heatsink 125x35x50 mm",
+      "project": "kicad/libraries/kicad-packages3D",
+      "file": "kicad-heatsink-125x35x50.step",
+      "url": "https://gitlab.com/kicad/libraries/kicad-packages3D/-/raw/8975715167d1a76f9b44be155ac02326f704cdbb/Heatsink.3dshapes/Heatsink_125x35x50mm_3xFixationM3.step",
+      "sha256": "b2012637e0f7d9184043c2545fbea5fa328bd8685fed7c2b2f113a528885ddf3",
+      "bytes": 110115,
+      "download_bytes": 110115,
+      "license": "CC-BY-SA-4.0",
+      "license_url": "https://gitlab.com/kicad/libraries/kicad-packages3D/-/raw/8975715167d1a76f9b44be155ac02326f704cdbb/LICENSE.md",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "small",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 1 1 1 1 }]",
+      "originating_system": "FreeCAD (preprocessor: Open CASCADE STEP processor 7.1)",
+      "stress_tags": [
+        "heat-sink-fins",
+        "many-faces"
+      ],
+      "notes": "FreeCAD / OCCT 7.1 export; small fin-array baseline.",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.402623994796995,
+          "edges": "1,2,3,4,6,9,147,148,149,150,151,152"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 0.1
+    },
+    {
+      "id": "zenodo-aerospace-sheet-metal-val18",
+      "name": "Structural aerospace sheet-metal part Val18",
+      "project": "Zenodo record 6970030",
+      "file": "zenodo-aerospace-sheet-metal-val18.step",
+      "url": "https://zenodo.org/records/6970030/files/Val18.stp",
+      "sha256": "75ca5951e627644f0ed2e2478e0659763cd9762445dbebe266ecd5cb91143b87",
+      "bytes": 368307,
+      "download_bytes": 368307,
+      "license": "CC-BY-4.0",
+      "license_url": "https://zenodo.org/records/6970030",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "small",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Inventor 2021 (preprocessor: ST-DEVELOPER v18.1)",
+      "stress_tags": [
+        "sheet-metal",
+        "thin-walls",
+        "bends",
+        "flanges"
+      ],
+      "notes": "One of several Val*.stp sheet-metal parts in this record (e.g. Val7, Val21, Val25 are similar small alternates; only Val18 was header-verified).",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.9692853199791148,
+          "edges": "84,86,88,89,90,97,99,100,103,104,193,231"
+        },
+        "shell": {
+          "select": "largest-solid",
+          "thickness": -0.9692853199791148,
+          "faces": "55"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 1.0
+    },
+    {
+      "id": "prusa-cw1-propeller-top",
+      "name": "Prusa CW1 propeller (impeller) top",
+      "project": "prusa3d/Original-Prusa-CW1",
+      "file": "prusa-cw1-propeller-top.step",
+      "url": "https://raw.githubusercontent.com/prusa3d/Original-Prusa-CW1/a7493605c046df34e3d93fcdf99599c78ccd857c/PRINTED%20PARTS/STEP/CW1-PROPELLER_TOP.step",
+      "sha256": "6d447c4b921fe0ed8a2c261652a3d0ffb1e967781380ce4907acc38652b5ca2a",
+      "bytes": 884065,
+      "download_bytes": 884065,
+      "license": "GPL-2.0",
+      "license_url": "https://github.com/prusa3d/Original-Prusa-CW1/blob/a7493605c046df34e3d93fcdf99599c78ccd857c/LICENSE",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "small",
+      "kind": "part",
+      "step_schema": "AP214 [AUTOMOTIVE_DESIGN { 1 0 10303 214 3 1 1 }]",
+      "originating_system": "Autodesk Translation Framework v8.2.0.1029 (preprocessor: ST-DEVELOPER v18)",
+      "stress_tags": [
+        "blades",
+        "organic-surfaces",
+        "many-fillets"
+      ],
+      "notes": "Fusion 360 export (translator v8.2).",
+      "ops": {
+        "fillet": {
+          "select": "largest-solid",
+          "radius": 0.39809564320383917,
+          "edges": "106,107,234,239,240,248,255,256,264,280,288,295"
+        }
+      },
+      "skip": [],
+      "estimated_minutes": 2.2
+    },
+    {
+      "id": "freecad-cup",
+      "name": "Cup (thin-walled organic)",
+      "project": "FreeCAD/FreeCAD-library",
+      "file": "freecad-cup.step",
+      "url": "https://raw.githubusercontent.com/FreeCAD/FreeCAD-library/f5ca01cdcaa2f69b9295a6382719c2d90628780c/Generic%20objects/cup.step",
+      "sha256": "e60be2d056104a0351b1663c39abdf1b644017b5ddb48ffead477a42e4373e70",
+      "bytes": 896506,
+      "download_bytes": 896506,
+      "license": "CC-BY-3.0",
+      "license_url": "https://github.com/FreeCAD/FreeCAD-library/blob/f5ca01cdcaa2f69b9295a6382719c2d90628780c/LICENSE-Assets",
+      "redistributable": true,
+      "committed": false,
+      "size_class": "small",
+      "kind": "part",
+      "step_schema": "AP214 (CC2 draft schema id) [AUTOMOTIVE_DESIGN_CC2 { 1 2 10303 214 -1 1 5 4 }]",
+      "originating_system": "FreeCAD (preprocessor: Open CASCADE STEP processor 6.8)",
+      "stress_tags": [
+        "thin-walls",
+        "organic-surfaces",
+        "tangent-faces",
+        "shell-candidate"
+      ],
+      "notes": "FreeCAD/OCCT 6.8 export.",
+      "ops": {},
+      "skip": [],
+      "estimated_minutes": 1.2
+    }
+  ]
+}
