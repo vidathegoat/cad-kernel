@@ -41,6 +41,17 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_GENERATOR_INSTANC
 - **Results:** the summary, failing tests and skipped tests are in `bench/results/testgrid-baseline.json`. The full logs stay outside the repository in `C:/billet-results/testgrid-baseline`.
 - **Baseline failures:** 560 are known upstream failures (tests marked TODO). All 295 unexpected failures are in visualization groups and come from features this configuration does not build: OpenGL ES (270), image input/output without FreeImage (23) and the Direct3D host (1). One more is a Tcl file channel error in `caf basic W12`. None are in modeling groups.
 
+## 2026-10-12: Benchmark harness and runner (Phase 1)
+
+- **Harness:** `billet-bench`, C++17, built against the installed Billet in `build-bench/`. One process runs one job (operation x model x thread mode), so peak memory is measured per job. Usage is in `bench/harness/README.md`.
+- **Protocol:** setup is not timed (load the STEP file, select solids, build tool shapes). Then 1 warm-up run and 5 timed runs, and the median is reported. Peak working set and peak commit come from the OS after the timed runs, before the fingerprint is computed.
+- **Thread modes:** `1` turns off the parallel flags, routes `OSD_Parallel` to a one-thread OCCT pool and pins the process to logical CPU 2. `all` turns the parallel flags on for booleans, meshing and BRepCheck, with TBB scheduling.
+- **Rebuild parts:** six scripted parts: the OCCT tutorial bottle, an L-bracket, a shelled enclosure, a revolved flange, a heatsink with 48 fillets and a drilled manifold block. Edges and faces are selected by geometry, not index.
+- **Job choices:** booleans use the model against a copy translated by 10%, 7% and 5% of its bounding box. Mesh presets: coarse is 0.1% of the bounding box diagonal and 0.5 rad, fine is 0.02% and 0.2 rad. Fillet and shell parameters are set per model in the manifest. `billet-bench probe` finds them.
+- **Fingerprint:** volume, area, bounding box (without triangulation), topology counts, triangle and node counts, and BRepCheck validity of the output. Outputs are saved as BREP (with triangulation only for meshing), or STEP for `step-write` with a fixed header time stamp. The runner records their SHA-256.
+- **Runner:** `bench/runner/billet_bench.py`, Python 3 standard library only, with `fetch`, `run` and `compare`. Jobs run at high process priority. Results go to `bench/results/<date>-<commit>.json`.
+- **Code style:** the harness is formatted with the repository's `.clang-format` (clang-format 19.1.5 from Visual Studio 2022).
+
 ## Open questions
 
 1. Which models make up the initial corpus, and where they come from (SPEC.md 10.1).
@@ -48,3 +59,5 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_GENERATOR_INSTANC
 3. Whether optimizations are offered upstream, and when (SPEC.md 10.3).
 4. Whether Billet eventually adds its own API layer for the CAD app (SPEC.md 10.4).
 5. `BUILD_OPT_PROFILE` for benchmark and release builds: upstream `Default`, or `Production` (adds `/GL`, `/LTCG` and more). Decide before the Phase 1 baseline, because switching later shifts every timing.
+6. How to verify serial changes (SPEC.md 7.1). Upstream OCCT is not bit-identical between two runs of the same build, even single-threaded. In the first harness test, the bottle part's volume differed by about 1e-15 (relative), and two parts' BREP files differed in bytes. The likely cause is shape maps hashed by memory address, so processing order follows the heap layout. Any allocation change, which is Phase 2's first category, also moves the heap. So "BREP byte-identical" would reject correct changes. Proposal: for serial changes, require identical topology counts and validity, and volume, area and bounding box within a relative 1e-12. Keep the BREP hashes for information only.
+7. Timing noise (SPEC.md 5.5). In the first test, single-threaded jobs repeated within 3%, but all-cores jobs of 10 to 400 ms varied by up to 10%. This needs work before Phase 1 is done.
