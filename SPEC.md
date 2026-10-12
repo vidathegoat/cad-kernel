@@ -233,7 +233,7 @@ One hotspot per cycle. Each cycle:
 
 ### 7.1 Verification (all must pass)
 
-- **Serial-only changes:** output fingerprints identical to baseline, and serialized BREP files byte-identical.
+- **Serial-only changes:** topology counts and BRepCheck validity identical to baseline; volume, area and bounding box within a relative tolerance of 1e-12. Output file hashes (BREP, STEP) are recorded for information but need not match, because upstream OCCT is not bit-identical between runs: shape maps are hashed by memory address, so processing order follows the heap layout (see `docs/billet/decisions.md`).
 - **Changes that add parallelism:** fingerprints within a relative tolerance of 1e-9, BRepCheck valid, topology counts identical. Byte-identical BREP is not required, since face ordering may change.
 - **Test grid:** no test that passed in the baseline now fails.
 - **Speed:** at least a 3% median gain on the targeted operation, with no other operation slower by more than 2%.
