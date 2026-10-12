@@ -17,6 +17,7 @@
 #include <BRepGProp.hxx>
 #include <BRepMesh_IncrementalMesh.hxx>
 #include <BRepTools.hxx>
+#include <BinTools.hxx>
 #include <BRep_Builder.hxx>
 #include <Bnd_Box.hxx>
 #include <GProp_GProps.hxx>
@@ -104,6 +105,25 @@ TopoDS_Shape loadStepShape(const std::string& thePath)
   {
     throw std::runtime_error("model file not found: " + thePath);
   }
+  if (std::filesystem::path(thePath).extension() == ".bbrep")
+  {
+    TopoDS_Shape aShape;
+    if (!BinTools::Read(aShape, thePath.c_str()) || aShape.IsNull())
+    {
+      throw std::runtime_error("cannot read binary BREP file: " + thePath);
+    }
+    return aShape;
+  }
+  if (std::filesystem::path(thePath).extension() == ".brep")
+  {
+    TopoDS_Shape aShape;
+    BRep_Builder aBuilder;
+    if (!BRepTools::Read(aShape, thePath.c_str(), aBuilder) || aShape.IsNull())
+    {
+      throw std::runtime_error("cannot read BREP file: " + thePath);
+    }
+    return aShape;
+  }
   STEPControl_Reader aReader;
   if (aReader.ReadFile(thePath.c_str()) != IFSelect_RetDone)
   {
@@ -161,8 +181,9 @@ TopoDS_Shape selectShape(const TopoDS_Shape& theShape, const std::string& theSel
 
 TopoDS_Shape loadInput(const JobOptions& theOptions, const std::string& theDefaultSelection)
 {
-  return selectShape(loadStepShape(theOptions.model),
-                     paramString(theOptions, "select", theDefaultSelection));
+  return selectShape(
+    loadStepShape(theOptions.inputFile.empty() ? theOptions.model : theOptions.inputFile),
+    paramString(theOptions, "select", theDefaultSelection));
 }
 
 double boxDiagonal(const TopoDS_Shape& theShape)
@@ -237,6 +258,9 @@ public:
       throw std::runtime_error("STEP transfer to XDE document failed: " + myPath);
     }
   }
+
+  // The "check" job measures validity of the same model, so it is not repeated here.
+  bool checkResult() const override { return false; }
 
   TopoDS_Shape result() const override
   {
@@ -583,6 +607,11 @@ long long Operation::saveOutput(const JobOptions& theOptions) const
 TopoDS_Shape loadModelShape(const std::string& thePath, const std::string& theSelection)
 {
   return selectShape(loadStepShape(thePath), theSelection);
+}
+
+TopoDS_Shape loadShapeFile(const std::string& thePath)
+{
+  return loadStepShape(thePath);
 }
 
 const std::vector<std::string>& operationIds()

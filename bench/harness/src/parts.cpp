@@ -411,6 +411,156 @@ TopoDS_Shape makeManifold()
   return aBody;
 }
 
+// Gearbox-style housing: rounded box, bottom fillet, shell open at the top, merged corner bosses
+// with tapped holes, internal ribs, bearing bosses with through bores, a floor vent pattern,
+// rib edge fillets and a chamfered rim.
+TopoDS_Shape makeHousing()
+{
+  const double aLx = 160.0, aLy = 110.0, aH = 70.0, aWall = 4.0;
+  TopoDS_Shape aBody =
+    extrude(planarFace(roundedRectangleWire(aLx, aLy, 8.0, 0.0), "housing sketch"),
+            0.0,
+            0.0,
+            aH,
+            "housing extrude");
+  aBody = filletEdges(
+    aBody,
+    6.0,
+    selectEdges(aBody,
+                [](const TopoDS_Edge& theEdge) { return near(edgeMidpoint(theEdge).Z(), 0.0); }),
+    "housing bottom fillet");
+  aBody =
+    thickSolid(aBody, {planarFaceAtZ(aBody, aH, "housing top face")}, -aWall, "housing shell");
+
+  std::vector<TopoDS_Shape> aCornerBosses, aTappedHoles;
+  for (double aSx : {-1.0, 1.0})
+  {
+    for (double aSy : {-1.0, 1.0})
+    {
+      const gp_Pnt aBase(aSx * 70.0, aSy * 45.0, aWall - 0.5);
+      aCornerBosses.push_back(makeCylinder(aBase, kDirZ, 6.0, aH - aBase.Z()));
+      aTappedHoles.push_back(
+        makeCylinder(gp_Pnt(aBase.X(), aBase.Y(), aH - 15.0), kDirZ, 2.5, 16.0));
+    }
+  }
+  aBody = fuseAll(aBody, aCornerBosses, "housing corner bosses");
+  aBody = cutAll(aBody, aTappedHoles, "housing tapped holes");
+
+  std::vector<TopoDS_Shape> aRibs;
+  for (double aRibX : {-60.0, 0.0, 60.0})
+  {
+    aRibs.push_back(makeBox(gp_Pnt(aRibX - 1.25, -aLy / 2.0 + 1.0, aWall - 0.5),
+                            2.5,
+                            aLy - 2.0,
+                            50.0 - aWall + 0.5));
+  }
+  aBody = fuseAll(aBody, aRibs, "housing ribs");
+
+  std::vector<TopoDS_Shape> aBearingBosses, aBores;
+  for (double aBoreX : {-35.0, 35.0})
+  {
+    for (double aSide : {-1.0, 1.0})
+    {
+      const double aInner = aSide * (aLy / 2.0 - aWall - 3.0);
+      aBearingBosses.push_back(
+        makeCylinder(gp_Pnt(aBoreX, aInner, 40.0), gp_Dir(0.0, aSide, 0.0), 18.0, aWall + 9.0));
+    }
+    aBores.push_back(
+      makeCylinder(gp_Pnt(aBoreX, -aLy / 2.0 - 10.0, 40.0), kDirY, 12.0, aLy + 20.0));
+  }
+  aBody = fuseAll(aBody, aBearingBosses, "housing bearing bosses");
+  aBody = cutAll(aBody, aBores, "housing bearing bores");
+
+  std::vector<TopoDS_Shape> aVents;
+  for (double aVentX : {-45.0, -20.0, 20.0, 45.0})
+  {
+    for (double aVentY : {-25.0, 0.0, 25.0})
+    {
+      aVents.push_back(makeCylinder(gp_Pnt(aVentX, aVentY, -1.0), kDirZ, 4.0, aWall + 2.0));
+    }
+  }
+  aBody = cutAll(aBody, aVents, "housing floor vents");
+
+  aBody = filletEdges(aBody,
+                      1.0,
+                      selectEdges(aBody,
+                                  [](const TopoDS_Edge& theEdge) {
+                                    return isLineAlong(theEdge, kDirY)
+                                           && near(edgeMidpoint(theEdge).Z(), 50.0);
+                                  }),
+                      "housing rib top fillets");
+
+  aBody = chamferEdges(aBody,
+                       1.0,
+                       selectEdges(aBody,
+                                   [&](const TopoDS_Edge& theEdge) {
+                                     const gp_Pnt aMid = edgeMidpoint(theEdge);
+                                     return near(aMid.Z(), aH)
+                                            && (near(std::abs(aMid.X()), aLx / 2.0)
+                                                || near(std::abs(aMid.Y()), aLy / 2.0)
+                                                || isCircle(theEdge, 8.0));
+                                   }),
+                       "housing rim chamfer");
+  return aBody;
+}
+
+// Wheel: revolved hub, web and rim, junction fillets, circular pocket pattern with filleted
+// pocket edges, keyed bore and chamfered rim.
+TopoDS_Shape makeWheel()
+{
+  const TopoDS_Face aSketch = planarFace(polygonWire({gp_Pnt(15.0, 0.0, -25.0),
+                                                      gp_Pnt(30.0, 0.0, -25.0),
+                                                      gp_Pnt(30.0, 0.0, -5.0),
+                                                      gp_Pnt(85.0, 0.0, -5.0),
+                                                      gp_Pnt(85.0, 0.0, -20.0),
+                                                      gp_Pnt(100.0, 0.0, -20.0),
+                                                      gp_Pnt(100.0, 0.0, 20.0),
+                                                      gp_Pnt(85.0, 0.0, 20.0),
+                                                      gp_Pnt(85.0, 0.0, 5.0),
+                                                      gp_Pnt(30.0, 0.0, 5.0),
+                                                      gp_Pnt(30.0, 0.0, 25.0),
+                                                      gp_Pnt(15.0, 0.0, 25.0)}),
+                                         "wheel sketch");
+  TopoDS_Shape      aBody   = revolveFull(aSketch, "wheel revolve");
+
+  aBody = filletEdges(aBody,
+                      4.0,
+                      selectEdges(aBody,
+                                  [](const TopoDS_Edge& theEdge) {
+                                    return (isCircle(theEdge, 30.0) || isCircle(theEdge, 85.0))
+                                           && near(std::abs(circleCenter(theEdge).Z()), 5.0);
+                                  }),
+                      "wheel web fillets");
+
+  std::vector<TopoDS_Shape> aPockets;
+  for (int i = 0; i < 6; ++i)
+  {
+    const double anAngle = kPi / 6.0 + 2.0 * kPi * i / 6.0;
+    aPockets.push_back(
+      makeCylinder(gp_Pnt(57.5 * std::cos(anAngle), 57.5 * std::sin(anAngle), -6.0),
+                   kDirZ,
+                   16.0,
+                   12.0));
+  }
+  aBody = cutAll(aBody, aPockets, "wheel pockets");
+  aBody = filletEdges(
+    aBody,
+    2.0,
+    selectEdges(aBody, [](const TopoDS_Edge& theEdge) { return isCircle(theEdge, 16.0); }),
+    "wheel pocket fillets");
+
+  aBody = cutAll(aBody, {makeBox(gp_Pnt(13.0, -3.0, -26.0), 6.0, 6.0, 52.0)}, "wheel keyway");
+  aBody = chamferEdges(aBody,
+                       1.5,
+                       selectEdges(aBody,
+                                   [](const TopoDS_Edge& theEdge) {
+                                     return isCircle(theEdge, 100.0)
+                                            && near(std::abs(circleCenter(theEdge).Z()), 20.0);
+                                   }),
+                       "wheel rim chamfers");
+  return aBody;
+}
+
 using PartBuilder = TopoDS_Shape (*)();
 
 struct PartEntry
@@ -435,6 +585,12 @@ const std::vector<PartEntry>& partEntries()
      &makeHeatsink},
     {{"manifold", "Manifold: intersecting bores, counterbores, tangent-chain and rim chamfers"},
      &makeManifold},
+    {{"housing",
+      "Housing: shell, corner bosses, ribs, bearing bosses and bores, vent pattern, fillets, rim "
+      "chamfer"},
+     &makeHousing},
+    {{"wheel", "Wheel: revolve, junction fillets, pocket pattern, 12 pocket fillets, keyway"},
+     &makeWheel},
   };
   return kEntries;
 }

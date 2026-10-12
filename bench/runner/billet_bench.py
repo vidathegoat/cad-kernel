@@ -148,8 +148,9 @@ def command_fetch(args: argparse.Namespace) -> int:
         log(f"  {message}")
         failures += 0 if ok else 1
     if args.update:
-        MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
-        log(f"Updated {MANIFEST.relative_to(REPO)}")
+        manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
+                                 newline="\n")
+        log(f"Updated {manifest_path}")
     log(f"{failures} model(s) failed" if failures else "All models present and verified")
     return 1 if failures else 0
 
@@ -199,6 +200,54 @@ def machine_info() -> dict:
     return info
 
 
+class PowerPlan:
+    """Activates a Windows power plan (by name) for the duration of a run, then restores the previous one."""
+
+    def __init__(self, name: str | None):
+        self.name, self.target, self.previous = name, None, None
+
+    @staticmethod
+    def _guid(line: str) -> str | None:
+        parts = line.split()
+        return parts[3] if len(parts) > 3 and parts[0] == "Power" else None
+
+    MARKER = CORPUS / "_power_plan_restore.txt"
+
+    def __enter__(self) -> "PowerPlan":
+        if sys.platform != "win32":
+            return self
+        if self.MARKER.exists():  # a previous run was killed before it could restore the plan
+            previous = self.MARKER.read_text(encoding="utf-8").strip()
+            subprocess.run(["powercfg", "/setactive", previous], check=False)
+            self.MARKER.unlink()
+            log("Restored the power plan left active by an interrupted run")
+        if not self.name:
+            return self
+        try:
+            listing = subprocess.run(["powercfg", "/list"], capture_output=True, text=True, check=True).stdout
+            active = subprocess.run(["powercfg", "/getactivescheme"], capture_output=True, text=True,
+                                    check=True).stdout
+        except (OSError, subprocess.CalledProcessError) as error:
+            log(f"Power plan not changed ({error})")
+            return self
+        self.target = next((self._guid(line) for line in listing.splitlines() if f"({self.name})" in line), None)
+        self.previous = self._guid(active.strip())
+        if self.target is None:
+            log(f"Power plan '{self.name}' not found; running with the current plan")
+        elif self.target != self.previous:
+            self.MARKER.parent.mkdir(parents=True, exist_ok=True)
+            self.MARKER.write_text(self.previous or "", encoding="utf-8")
+            subprocess.run(["powercfg", "/setactive", self.target], check=True)
+            log(f"Power plan '{self.name}' active for this run")
+        return self
+
+    def __exit__(self, *exc) -> None:
+        if self.target and self.previous and self.target != self.previous:
+            subprocess.run(["powercfg", "/setactive", self.previous], check=False)
+            self.MARKER.unlink(missing_ok=True)
+            log("Previous power plan restored")
+
+
 def harness_env(args: argparse.Namespace) -> dict:
     env = dict(os.environ)
     paths = [str(Path(args.install) / "win64" / "vc14" / "bin"), str(args.deps_bin)]
@@ -209,6 +258,54 @@ def harness_env(args: argparse.Namespace) -> dict:
 def scripted_parts(args: argparse.Namespace, env: dict) -> list[str]:
     output = subprocess.run([str(args.harness), "parts"], capture_output=True, text=True, env=env, check=True)
     return [line.split("\t")[0] for line in output.stdout.splitlines() if line.strip()]
+
+
+def prepare_cache(models: list[dict], args: argparse.Namespace, env: dict, version: str) -> dict[str, Path]:
+    """Converts each STEP model once to a binary BREP copy (exact doubles), so job setup loads quickly.
+    Setup is not timed, and every job starts from the same input shape. Returns (model id, selection) -> path."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    cache = CORPUS / "_cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    paths: dict[tuple[str, str], Path] = {}
+    todo = []
+    for model in models:
+        selections = {"all"} | {str(params["select"]) for params in model.get("ops", {}).values()
+                                if params.get("select") not in (None, "all")}
+        for selection in sorted(selections):
+            stem = model["id"] if selection == "all" else f"{model['id']}.{selection.replace(':', '-')}"
+            brep, meta = cache / f"{stem}.bbrep", cache / f"{stem}.json"
+            expected = {"source_sha256": model.get("sha256"), "select": selection, "harness": version,
+                        "format": "binary"}
+            paths[(model["id"], selection)] = brep
+            if brep.exists() and meta.exists() and json.loads(meta.read_text(encoding="utf-8")) == expected:
+                continue
+            todo.append((model, selection, brep, meta, expected))
+
+    def convert(item):
+        model, selection, brep, meta, expected = item
+        brep.unlink(missing_ok=True)
+        source = paths[(model["id"], "all")] if selection != "all" else CORPUS / model["file"]
+        process = subprocess.run([str(args.harness), "convert", "--model", str(source), "--param",
+                                  f"select={selection}", "--save-output", str(brep)],
+                                 env=env, capture_output=True, text=True)
+        if process.returncode == 0 and brep.exists():
+            meta.write_text(json.dumps(expected) + "\n", encoding="utf-8")
+            return model["id"], selection, None
+        return model["id"], selection, process.stderr.strip()[-300:] or f"exit code {process.returncode}"
+
+    # Whole models first, because selections are extracted from the cached whole model.
+    for whole in (True, False):
+        batch = [item for item in todo if (item[1] == "all") == whole]
+        if not batch:
+            continue
+        log(f"Preparing {len(batch)} cached BREP input(s) in {cache.relative_to(REPO)}")
+        with ThreadPoolExecutor(max_workers=args.cache_workers) as pool:
+            for model_id, selection, error in pool.map(convert, batch):
+                if error:
+                    log(f"  {model_id} ({selection}): conversion failed, jobs will read the STEP file ({error})")
+                    paths.pop((model_id, selection), None)
+    return paths
 
 
 def plan_jobs(args: argparse.Namespace, manifest: dict | None, parts: list[str]) -> list[dict]:
@@ -259,8 +356,12 @@ def run_job(job: dict, args: argparse.Namespace, env: dict, output_dir: Path) ->
                "--cpu", str(args.cpu), "--save-output", str(saved), "--scratch", str(output_dir), "--out", str(report)]
     for key, value in job["params"].items():
         command += ["--param", f"{key}={value}"]
+    if job.get("input"):
+        command += ["--input", str(job["input"])]
     if args.no_validity:
         command.append("--no-validity")
+    if job["threads"] == "all" and not args.no_pin_main_thread:
+        command.append("--pin-main-thread")
 
     flags = 0
     if sys.platform == "win32" and args.priority == "high":
@@ -277,6 +378,8 @@ def run_job(job: dict, args: argparse.Namespace, env: dict, output_dir: Path) ->
     elapsed = time.monotonic() - started
 
     result = {key: job[key] for key in ("job", "op", "model", "threads", "params")}
+    if job.get("input"):
+        result["input"] = str(Path(job["input"]).relative_to(REPO)).replace("\\", "/")
     if exit_code is None:
         result.update(status="timeout", error=f"exceeded {args.timeout} s")
     elif not report.exists():
@@ -334,16 +437,40 @@ def command_run(args: argparse.Namespace) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     jobs = plan_jobs(args, manifest, scripted_parts(args, env))
+    if args.dry_run:
+        counts: dict[str, int] = {}
+        for job in jobs:
+            counts[job["job"]] = counts.get(job["job"], 0) + 1
+        log(f"{len(jobs)} job(s): " + ", ".join(f"{name} {count}" for name, count in counts.items()))
+        if manifest is not None:
+            wanted = {job["model"] for job in jobs}
+            minutes = sum(m.get("estimated_minutes", 0.0) for m in manifest["models"] if m["id"] in wanted)
+            log(f"Manifest estimate for these models (all their jobs, both thread modes): {minutes / 60:.1f} h")
+        return 0
     version = subprocess.run([str(args.harness), "version"], capture_output=True, text=True, env=env).stdout.strip()
+    if manifest is not None and not args.no_cache:
+        planned = {job["model"] for job in jobs}
+        cached = prepare_cache([m for m in manifest["models"] if m["id"] in planned], args, env, version)
+        for job in jobs:
+            if job["op"] in (REBUILD, "step-read"):
+                continue
+            selection = job["params"].get("select", "all")
+            if (job["model"], selection) in cached:
+                # The cached file holds only the selected shape, so the job then selects all of it.
+                job["input"] = cached[(job["model"], selection)]
+                if selection != "all":
+                    job["params"] = {**job["params"], "select": "all", "cached_selection": selection}
     log(f"Running {len(jobs)} job(s); results -> {results_path.relative_to(REPO) if results_path.is_relative_to(REPO) else results_path}")
 
     results = []
-    for index, job in enumerate(jobs, 1):
-        result = run_job(job, args, env, output_dir)
-        results.append(result)
-        status = result.get("status")
-        detail = f"{result['median_s']:.4f} s" if status == "ok" else f"{status}: {result.get('error', '')}"
-        log(f"[{index}/{len(jobs)}] {job['job']:<12} {job['model']:<28} threads={job['threads']:<3} {detail}")
+    with PowerPlan(args.power_plan):
+        power_plan = machine_info().get("power_plan")
+        for index, job in enumerate(jobs, 1):
+            result = run_job(job, args, env, output_dir)
+            results.append(result)
+            status = result.get("status")
+            detail = f"{result['median_s']:.4f} s" if status == "ok" else f"{status}: {result.get('error', '')}"
+            log(f"[{index}/{len(jobs)}] {job['job']:<12} {job['model']:<28} threads={job['threads']:<3} {detail}")
 
     document = {
         "schema_version": 1,
@@ -351,11 +478,12 @@ def command_run(args: argparse.Namespace) -> int:
         "label": label,
         "created": now.isoformat(timespec="seconds"),
         "git": git,
-        "machine": machine_info(),
+        "machine": {**machine_info(), "power_plan": power_plan},
         "harness": {"version_line": version, "runner_version": RUNNER_VERSION},
         "settings": {"warmup": args.warmup, "runs": args.runs, "threads": args.threads.split(","),
-                     "single_thread_cpu": args.cpu, "priority": args.priority,
-                     "validity_checked": not args.no_validity},
+                     "single_thread_cpu": args.cpu, "pin_main_thread": not args.no_pin_main_thread,
+                     "priority": args.priority, "validity_checked": not args.no_validity,
+                     "brep_input_cache": not args.no_cache},
         "corpus": None if manifest is None else {"manifest": str(manifest_path),
                                                  "manifest_sha256": sha256_of(manifest_path),
                                                  "models": len(manifest["models"])},
@@ -386,6 +514,8 @@ def close(a, b, tolerance: float) -> bool:
 
 
 def command_compare(args: argparse.Namespace) -> int:
+    if args.tolerance is None:
+        args.tolerance = 1e-12 if args.rule == "serial" else 1e-9
     base = json.loads(Path(args.base).read_text(encoding="utf-8"))
     new = json.loads(Path(args.new).read_text(encoding="utf-8"))
     key = lambda job: (job["job"], job["model"], job["threads"])  # noqa: E731
@@ -432,6 +562,7 @@ def command_compare(args: argparse.Namespace) -> int:
     for job_key, change in noisy:
         log(f"OVER {args.max_change}% {job_key}: {change:+.1f}%")
     failed = bool(mismatches) or bool(noisy)
+    log(f"Fingerprint tolerance: relative {args.tolerance:g}; topology counts and validity must match exactly")
     log("RESULT: " + ("FAIL" if failed else "PASS")
         + f" ({len(rows)} compared, {len(mismatches)} fingerprint mismatches, {len(noisy)} over the limit)")
     return 1 if failed else 0
@@ -452,16 +583,26 @@ def main() -> int:
     run = commands.add_parser("run", help="run the benchmark")
     run.add_argument("--manifest", default=str(MANIFEST), help="corpus manifest (default: bench/corpus.manifest.json)")
     run.add_argument("--label", help="results name (default: <date>-<commit>)")
+    run.add_argument("--dry-run", action="store_true", help="list the planned jobs and exit")
     run.add_argument("--output", help="results file path (default: bench/results/<label>.json)")
     run.add_argument("--jobs", help=f"comma-separated job types (default: all): {', '.join(ALL_JOBS)}")
     run.add_argument("--models", help="comma-separated model ids, or part:<id> for rebuild parts")
     run.add_argument("--threads", default="1,all", help="thread modes (default: 1,all)")
     run.add_argument("--warmup", type=int, default=1)
     run.add_argument("--runs", type=int, default=5)
-    run.add_argument("--cpu", type=int, default=2, help="logical CPU for single-threaded jobs (default: 2)")
+    run.add_argument("--cpu", type=int, default=2,
+                     help="logical CPU for single-threaded jobs and for the main thread of all-cores jobs (default: 2)")
+    run.add_argument("--no-pin-main-thread", action="store_true",
+                     help="do not pin the main thread of all-cores jobs (pinning reduces timing noise)")
     run.add_argument("--priority", choices=["normal", "high"], default="high")
+    run.add_argument("--power-plan", default="Billet benchmark",
+                     help="Windows power plan to activate during the run, by name (default: 'Billet benchmark'; "
+                          "'' keeps the current plan). The previous plan is restored afterwards.")
     run.add_argument("--timeout", type=int, default=3600, help="seconds per job (default: 3600)")
     run.add_argument("--no-validity", action="store_true", help="skip BRepCheck on outputs")
+    run.add_argument("--no-cache", action="store_true",
+                     help="read STEP files in every job's setup instead of cached BREP copies")
+    run.add_argument("--cache-workers", type=int, default=4, help="parallel conversions when building the cache")
     run.add_argument("--harness", default=str(DEFAULT_HARNESS))
     run.add_argument("--install", default=str(DEFAULT_INSTALL))
     run.add_argument("--deps-bin", default=str(DEFAULT_DEPS_BIN))
@@ -471,8 +612,10 @@ def main() -> int:
     compare.add_argument("base")
     compare.add_argument("new")
     compare.add_argument("--max-change", type=float, help="fail if any timing changes by more than this percent")
-    compare.add_argument("--tolerance", type=float, default=0.0,
-                         help="relative tolerance for fingerprint numbers (0 = exact; 1e-9 for parallel changes)")
+    compare.add_argument("--rule", choices=["serial", "parallel"], default="serial",
+                         help="SPEC.md 7.1 rule: serial = relative 1e-12 (default), parallel = relative 1e-9")
+    compare.add_argument("--tolerance", type=float,
+                         help="relative tolerance for fingerprint numbers; overrides --rule (0 = exact)")
     compare.add_argument("--exact-outputs", action="store_true", help="also require identical output file hashes")
     compare.set_defaults(handler=command_compare)
 

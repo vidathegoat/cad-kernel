@@ -24,6 +24,7 @@ struct JobOptions
   std::map<std::string, std::string> params; // operation parameters, from --param key=value
   std::string outputFile; // where to save the result (BREP, or STEP for step-write)
   std::string scratchDir; // folder for temporary files
+  std::string inputFile;  // optional BREP copy of the model, read instead of the STEP file in setup
 };
 
 // One benchmarked operation. setup() and prepareRun() are not timed; run() is.
@@ -54,8 +55,12 @@ public:
 // Ids of all supported operations.
 const std::vector<std::string>& operationIds();
 
-// Reads a STEP file and applies a selection: "all", "largest-solid" or "solid:<n>" (1-based).
+// Reads a STEP or BREP file (by extension) and applies a selection: "all", "largest-solid" or
+// "solid:<n>" (1-based).
 TopoDS_Shape loadModelShape(const std::string& thePath, const std::string& theSelection);
+
+// Reads a STEP file, or a BREP file when the extension is .brep (text) or .bbrep (binary, exact).
+TopoDS_Shape loadShapeFile(const std::string& thePath);
 
 // Creates the operation, or throws std::runtime_error for an unknown id.
 std::unique_ptr<Operation> createOperation(const std::string& theId);

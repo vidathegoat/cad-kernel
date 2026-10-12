@@ -13,6 +13,7 @@
 #include <BOPAlgo_Options.hxx>
 #include <BRepAdaptor_Curve.hxx>
 #include <BRep_Tool.hxx>
+#include <BinTools.hxx>
 #include <GCPnts_AbscissaPoint.hxx>
 #include <Message.hxx>
 #include <Message_Messenger.hxx>
@@ -40,6 +41,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -75,10 +77,22 @@ MemorySample sampleMemory()
 
 // Single-threaded mode turns off the parallel flags, routes OSD_Parallel to a one-thread OCCT pool
 // and pins the process to one logical CPU. All-cores mode turns the parallel flags on.
-void configureThreads(bool theParallel, int theCpu)
+void configureThreads(bool theParallel, int theCpu, bool thePinMainThread)
 {
   BOPAlgo_Options::SetParallelMode(theParallel);
-  if (!theParallel)
+  if (theParallel)
+  {
+#ifdef _WIN32
+    // Keeps the calling thread on one CPU; worker threads stay free to use all CPUs.
+    if (thePinMainThread && theCpu >= 0)
+    {
+      SetThreadAffinityMask(GetCurrentThread(), static_cast<DWORD_PTR>(1) << theCpu);
+    }
+#else
+    (void)thePinMainThread;
+#endif
+  }
+  else
   {
     OSD_Parallel::SetUseOcctThreads(true);
     OSD_ThreadPool::DefaultPool(1);
@@ -107,20 +121,26 @@ double median(std::vector<double> theValues)
 
 void printUsage()
 {
-  std::cerr << "Usage:\n"
-               "  billet-bench run --op <id> --model <file|part-id> [--threads 1|all] [--warmup N] "
-               "[--runs N]\n"
-               "                   [--cpu N] [--param key=value]... [--save-output <file>] "
-               "[--scratch <dir>]\n"
-               "                   [--no-validity] [--out <json>]\n"
-               "  billet-bench parts            list scripted parts for the rebuild operation\n"
-               "  billet-bench ops              list operations\n"
-               "  billet-bench edges --model <file> [--out <json>]\n"
-               "  billet-bench probe --op fillet|shell --model <file> [--param key=value]... "
-               "[--out <json>]\n"
-               "                   fillet: radius=R [count=12] [select=largest-solid] [tries=200]\n"
-               "                   shell:  thickness=T [select=largest-solid] [tries=20]\n"
-               "  billet-bench version\n";
+  std::cerr
+    << "Usage:\n"
+       "  billet-bench run --op <id> --model <file|part-id> [--threads 1|all] [--warmup N] "
+       "[--runs N]\n"
+       "                   [--cpu N] [--param key=value]... [--save-output <file>] "
+       "[--scratch <dir>]\n"
+       "                   [--input <brep|bbrep>] [--pin-main-thread] [--no-validity] [--out "
+       "<json>]\n"
+       "  billet-bench convert --model <file> --save-output <brep|bbrep> [--param select=...] "
+       "[--out <json>]\n"
+       "  billet-bench parts            list scripted parts for the rebuild operation\n"
+       "  billet-bench ops              list operations\n"
+       "  billet-bench edges --model <file> [--out <json>]\n"
+       "  billet-bench probe --op fillet|shell --model <file> [--param key=value]... "
+       "[--out <json>]\n"
+       "                   fillet: radius=R | radius_frac=F [count=12] [select=largest-solid] "
+       "[tries=200]\n"
+       "                   shell:  thickness=T | thickness_frac=F [select=largest-solid] "
+       "[tries=20]\n"
+       "  billet-bench version\n";
 }
 
 void emit(const std::string& theText, const std::string& theOutFile)
@@ -160,11 +180,12 @@ std::string describeException()
 
 int runJob(const billet::JobOptions& theOptions,
            int                       theCpu,
+           bool                      thePinMainThread,
            bool                      theValidity,
            const std::string&        theOutFile)
 {
   using Clock = std::chrono::steady_clock;
-  configureThreads(theOptions.parallel, theCpu);
+  configureThreads(theOptions.parallel, theCpu, thePinMainThread);
 
   billet::JsonWriter aJson;
   aJson.beginObject();
@@ -173,6 +194,8 @@ int runJob(const billet::JobOptions& theOptions,
   aJson.key("op").value(theOptions.op);
   aJson.key("model").value(theOptions.model);
   aJson.key("threads").value(theOptions.parallel ? "all" : "1");
+  aJson.key("cpu").value(theCpu);
+  aJson.key("pin_main_thread").value(theOptions.parallel && thePinMainThread);
   aJson.key("params");
   aJson.beginObject();
   for (const auto& aParam : theOptions.params)
@@ -329,6 +352,7 @@ int main(int argc, char** argv)
   std::string        anOutFile;
   int                aCpu      = 2;
   bool               aValidity = true;
+  bool               aPinMain  = false;
   try
   {
     for (int i = 2; i < argc; ++i)
@@ -374,8 +398,12 @@ int main(int argc, char** argv)
         anOptions.outputFile = aNext();
       else if (anArg == "--scratch")
         anOptions.scratchDir = aNext();
+      else if (anArg == "--input")
+        anOptions.inputFile = aNext();
       else if (anArg == "--no-validity")
         aValidity = false;
+      else if (anArg == "--pin-main-thread")
+        aPinMain = true;
       else if (anArg == "--out")
         anOutFile = aNext();
       else
@@ -388,7 +416,7 @@ int main(int argc, char** argv)
       {
         throw std::runtime_error("run needs --op and --model");
       }
-      return runJob(anOptions, aCpu, aValidity, anOutFile);
+      return runJob(anOptions, aCpu, aPinMain, aValidity, anOutFile);
     }
     if (aCommand == "parts")
     {
@@ -419,6 +447,53 @@ int main(int argc, char** argv)
       emit(anOptions.op == "fillet" ? billet::probeFillet(anOptions)
                                     : billet::probeShell(anOptions),
            anOutFile);
+      return 0;
+    }
+    if (aCommand == "convert")
+    {
+      if (anOptions.model.empty() || anOptions.outputFile.empty())
+      {
+        throw std::runtime_error("convert needs --model <step> and --save-output <brep>");
+      }
+      const auto        aStart  = std::chrono::steady_clock::now();
+      const auto        aSelect = anOptions.params.find("select");
+      const std::string aSelection =
+        aSelect == anOptions.params.end() ? std::string("all") : aSelect->second;
+      const TopoDS_Shape aShape = billet::loadModelShape(anOptions.model, aSelection);
+      const double       aReadSeconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - aStart).count();
+      // Binary BREP stores doubles exactly; text BREP rounds them to 15 significant digits.
+      long long aBytes = -1;
+      if (std::filesystem::path(anOptions.outputFile).extension() == ".bbrep")
+      {
+        if (BinTools::Write(aShape,
+                            anOptions.outputFile.c_str(),
+                            false,
+                            false,
+                            BinTools_FormatVersion_CURRENT))
+        {
+          aBytes = static_cast<long long>(std::filesystem::file_size(anOptions.outputFile));
+        }
+      }
+      else
+      {
+        aBytes = billet::writeBrep(aShape, anOptions.outputFile, false);
+      }
+      if (aBytes < 0)
+      {
+        throw std::runtime_error("cannot write " + anOptions.outputFile);
+      }
+      const billet::Fingerprint aPrint = billet::computeFingerprint(aShape, false, false);
+      billet::JsonWriter        aJson;
+      aJson.beginObject();
+      aJson.key("model").value(anOptions.model);
+      aJson.key("brep").value(anOptions.outputFile);
+      aJson.key("bytes").value(aBytes);
+      aJson.key("read_s").value(aReadSeconds);
+      aJson.key("fingerprint");
+      billet::writeFingerprint(aJson, aPrint);
+      aJson.endObject();
+      emit(aJson.text(), anOutFile);
       return 0;
     }
     if (aCommand == "version")
