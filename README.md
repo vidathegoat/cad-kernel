@@ -1,3 +1,55 @@
+<!-- Modified for Billet. -->
+# Billet
+
+Billet is a performance fork of Open CASCADE Technology 8.0.1. Its goal is to make the kernel measurably faster without changing its results, so that open CAD applications can be built on a faster kernel.
+
+- **Same input, same output.** Optimizations change speed and memory use only, never geometric results.
+- **Drop-in compatible.** Billet keeps the 8.0.1 public API, ABI, library names, class names and namespaces. Code that builds against OCCT 8.0.1 builds against Billet without source changes.
+- **Measured.** Every optimization is merged with before and after benchmark numbers, logged in [docs/billet/perf-log.md](docs/billet/perf-log.md).
+
+**Status:** setup and baseline (Phase 0). There are no optimizations yet, and the source code is unmodified upstream 8.0.1.
+
+See [NOTICE.md](NOTICE.md) for the upstream base, license and trademarks, and [SPEC.md](SPEC.md) for the development plan.
+
+## Building on Windows
+
+Requirements: Visual Studio 2022 with the "Desktop development with C++" workload, CMake 3.20 or newer, Git on PATH, and vcpkg in `C:\vcpkg`. During configure, vcpkg installs FreeType, Tcl/Tk, oneTBB and RapidJSON from the manifest in `adm/vcpkg/ports/opencascade`.
+
+From the repository folder:
+
+```powershell
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DBUILD_USE_VCPKG=ON -DINSTALL_DIR=C:/billet-install -DINSTALL_TEST_CASES=ON -DUSE_TBB=ON -DUSE_RAPIDJSON=ON
+```
+
+```powershell
+cmake --build build --config Release --parallel
+```
+
+```powershell
+cmake --install build --config Release
+```
+
+If more than one Visual Studio 2022 edition is installed, add `"-DCMAKE_GENERATOR_INSTANCE=<path to the edition>"` to the first command. Keep the `build` folder after installing, because the scripts in the install folder load the third-party DLLs from `build\vcpkg_installed`.
+
+## Running the upstream test grid
+
+Download upstream's public test data pack, [opencascade-dataset-7.9.0.zip](https://github.com/Open-Cascade-SAS/OCCT/releases/download/V7_9_0_beta1/opencascade-dataset-7.9.0.zip), and extract it, for example to `C:\billet-testdata`. Then, in PowerShell inside the install folder:
+
+```powershell
+$env:CSF_TestDataPath = "C:/billet-testdata/opencascade-dataset-7.9.0"
+.\draw.bat
+```
+
+In the DRAW console that opens, run `testgrid -parallel 16`. The baseline results for unmodified 8.0.1 are in [bench/results/testgrid-baseline.json](bench/results/testgrid-baseline.json).
+
+## License
+
+Billet is licensed under the GNU Lesser General Public License version 2.1 with the Open CASCADE exception version 1.0, the same terms as Open CASCADE Technology. See `LICENSE_LGPL_21.txt` and `OCCT_LGPL_EXCEPTION.txt`.
+
+---
+
+*The original Open CASCADE Technology README follows, unchanged.*
+
 # Open CASCADE Technology
 
 Open CASCADE Technology (OCCT) is a software development platform providing services for 3D surface and solid modeling, CAD data exchange, and visualization. Most of OCCT functionality is available in the form of C++ libraries. OCCT is ideal for developing software dealing with 3D modeling (CAD), manufacturing/measuring (CAM), or numerical simulation (CAE).

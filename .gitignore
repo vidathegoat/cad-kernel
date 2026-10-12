@@ -1,3 +1,4 @@
+# Modified for Billet.
 # ============================================================================
 # SINGLE-LEVEL RESTRICTIONS: Only accept what's already tracked in git
 # (These rules apply only at the specified level, deeper levels follow rules below)
@@ -23,6 +24,12 @@
 !/tests/
 !/.github/
 !/samples/
+# Billet paths (SPEC.md section 3)
+!/SPEC.md
+!/NOTICE.md
+!/bench/
+!/docs/
+/bench/corpus/
 
 # data/ level: Ignore everything except tracked subdirectories
 /data/*
