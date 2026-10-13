@@ -177,7 +177,7 @@ Priority order follows the product direction: feature rebuild and modeling opera
 
 ### 5.3 Metrics per run
 
-- Wall time: median of 5 runs after 1 warm-up run.
+- Wall time: median of 5 runs after 2 warm-up runs.
 - Peak memory.
 - Thread mode: single-threaded and all cores, measured separately.
 
@@ -195,7 +195,7 @@ Saved alongside timings, used to prove output is unchanged:
 
 - One command runs the full benchmark and writes `bench/results/<date>-<commit>.json`.
 - A baseline run on unmodified 8.0.1 is saved as `bench/results/baseline-8.0.1.json`.
-- Running the benchmark twice on the same build gives timings within 5% of each other. If not, fix noise (power plan, background load, CPU pinning) before Phase 2.
+- Running the benchmark twice on the same build gives, for every job type and thread mode, geometric-mean timings within 2% of each other. If not, fix noise (power plan, background load, CPU pinning) before Phase 2.
 
 **Commit points:** harness, then corpus manifest, then baseline results.
 
@@ -233,8 +233,7 @@ One hotspot per cycle. Each cycle:
 
 ### 7.1 Verification (all must pass)
 
-- **Serial-only changes:** topology counts and BRepCheck validity identical to baseline; volume, area and bounding box within a relative tolerance of 1e-12. Output file hashes (BREP, STEP) are recorded for information but need not match, because upstream OCCT is not bit-identical between runs: shape maps are hashed by memory address, so processing order follows the heap layout (see `docs/billet/decisions.md`).
-- **Changes that add parallelism:** fingerprints within a relative tolerance of 1e-9, BRepCheck valid, topology counts identical. Byte-identical BREP is not required, since face ordering may change.
+- **Output:** topology counts and BRepCheck validity identical to baseline; volume, area and bounding box within a relative tolerance of 1e-9. This applies to serial changes and to changes that add parallelism alike. Output file hashes (BREP, STEP) are recorded for information but need not match, because upstream OCCT is not bit-identical between runs: shape maps are hashed by memory address, so processing order follows the heap layout. Between processes of the same 8.0.1 build, volume varies by up to 5e-10 (see `docs/billet/decisions.md`).
 - **Test grid:** no test that passed in the baseline now fails.
 - **Speed:** at least a 3% median gain on the targeted operation, with no other operation slower by more than 2%.
 

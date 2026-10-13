@@ -88,6 +88,34 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_GENERATOR_INSTANC
 - **Inputs:** every job except `step-read` loads a binary BREP copy of its model (`bench/corpus/_cache`), made once per model. Binary BREP stores doubles exactly, so results are bit-identical to reading the STEP file; text BREP rounds to 15 digits and changed a fillet result in the 12th digit. The copy is made once and reused across builds, so later builds measure operations on exactly the same input.
 - **Cost:** about 3.4 hours for a full run (612 jobs, both thread modes) on the maintainer's desktop. `run --dry-run` shows the plan, and `--jobs`, `--models` and `--threads` run a subset.
 
+## 2026-10-13: Timing noise, second round (SPEC.md 5.5)
+
+- **First noise check failed:** two full runs of unmodified 8.0.1 on 2026-10-12, one in the evening and one at night, agreed within 5% on only 363 of 612 jobs. Per job type, geometric means agreed within 3%, except `rebuild` (15% single-threaded, 9% all cores). The differences clustered in time: during the maintainer's evening use, around Windows' 2 AM maintenance window, and at the start of the first run.
+- **Pinned CPU:** single-threaded jobs moved from logical CPU 2 to the first CPU of the last core (CPU 14 on the maintainer's Ryzen 7 7800X3D). Windows runs most background threads and interrupts on the first cores: with the machine idle, CPUs 0 to 3 were 22 to 34% busy and CPUs 12 to 15 about 2%. On CPU 14, corpus jobs ran 9 to 13% faster, and the spread between processes fell from 4–9% to 1.4–4.4%.
+- **SMT sibling:** a busy sibling CPU slows a pinned single-threaded job by 25 to 48%. While a job runs, Windows moves background threads onto its sibling, so background load reaches single-threaded jobs mainly that way.
+- **Background load:** the desktop's always-on applications keep about 1 to 2 CPUs busy, and the maintainer keeps them running. The runner guards against the load instead:
+  - At the start of the run, it takes the idle level as the median of five 1-second load samples.
+  - Before each job, it waits until the load is back near the idle level, for up to 5 minutes. This also lets the previous job's process teardown finish.
+  - Over the timed runs, the harness measures the CPU time not used by its own process (other processes, interrupts and DPCs) and how busy the pinned CPU's sibling was.
+  - A job is rerun, up to twice, if other work kept more than 1.5 CPUs busy above the idle level, or if the sibling was busy more than 25% of the time. Jobs still disturbed after that are flagged in the results.
+  - Windows counts CPU time in 15.6 ms ticks, so jobs whose timed runs total under a second rely on the wait alone.
+- **Input cache:** the cached BREP inputs no longer depend on the harness version. Harness changes do not rebuild them, so every build keeps measuring the same input.
+
+## 2026-10-13: Noise gate per job type (amends SPEC.md 5.5)
+
+- **Decision:** two runs of the same build must agree within 2% on the geometric mean of every job type, per thread mode (`compare --max-type-change 2`). Per-job changes are reported for information.
+- **Why:** SPEC.md 7.1 judges speed per operation (a 3% gain on the targeted one, no other slower by more than 2%), so the noise must be below 2% at that level. Per job, 5% is out of reach with the desktop's background applications running. In a subset check (142 jobs, two runs back to back), 90% of jobs agreed within 5%, and 20 of 22 job types within 2%. The rest of the per-job noise comes from short jobs and from per-process effects. Repeating short operations within a run, to time at least 0.2 s, did not reduce it.
+
+## 2026-10-13: Two warm-up runs (amends SPEC.md 5.3)
+
+- **Decision:** the median of 5 timed runs is taken after 2 warm-up runs instead of 1.
+- **Why:** in larger jobs (STEP read, shell, mesh), the first two runs in a process are 8 to 10% faster than every later run. Page faults and kernel time stay the same; user time rises as the heap fills. With one warm-up, the first timed run fell in that fast phase. The housing rebuild shows no such effect. A full run takes about 15% longer.
+
+## 2026-10-13: One fingerprint tolerance, 1e-9 (amends SPEC.md 7.1)
+
+- **Decision:** for every change, serial or parallel, volume, area and bounding box must agree within a relative 1e-9, and topology counts and validity must match exactly. `compare` defaults to 1e-9, and its `--rule` option was removed.
+- **Why:** the 1e-12 serial rule rejected unmodified 8.0.1. Over 20 to 40 processes of the same build, the housing part's volume varied by up to 5e-10 relative and its area by up to 8.5e-11. Its bounding box and topology never changed. The bottle part varies by about 1e-14. The other six parts were bit-identical, and so were 604 of 612 jobs between the two full runs.
+
 ## Open questions
 
 1. Whether the first release ships prebuilt binaries or source only (SPEC.md 10.2).
