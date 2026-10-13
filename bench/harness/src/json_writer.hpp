@@ -73,6 +73,16 @@ public:
     endArray();
   }
 
+  void value(const std::vector<long long>& theValues)
+  {
+    beginArray();
+    for (long long aValue : theValues)
+    {
+      value(aValue);
+    }
+    endArray();
+  }
+
   const std::string& text() const { return myText; }
 
 private:

@@ -19,7 +19,7 @@ struct JobOptions
   std::string                        op;    // operation id, for example "bool-fuse"
   std::string                        model; // STEP file, or a scripted part id for "rebuild"
   bool                               parallel = false;
-  int                                warmup   = 1;
+  int                                warmup   = 2;
   int                                runs     = 5;
   std::map<std::string, std::string> params; // operation parameters, from --param key=value
   std::string outputFile; // where to save the result (BREP, or STEP for step-write)

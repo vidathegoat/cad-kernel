@@ -51,7 +51,7 @@
 namespace
 {
 
-const char* const kHarnessVersion = "0.1.0";
+const char* const kHarnessVersion = "0.2.0";
 
 struct MemorySample
 {
@@ -73,6 +73,183 @@ MemorySample sampleMemory()
   }
 #endif
   return aSample;
+}
+
+#ifdef _WIN32
+// Layout of SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION (winternl.h), one entry per logical CPU,
+// as returned by NtQuerySystemInformation(SystemProcessorPerformanceInformation).
+struct ProcessorTimes
+{
+  LARGE_INTEGER Idle;
+  LARGE_INTEGER Kernel; // includes idle, DPC and interrupt time
+  LARGE_INTEGER User;
+  LARGE_INTEGER Dpc;
+  LARGE_INTEGER Interrupt;
+  ULONG         InterruptCount;
+};
+#endif
+
+// CPU time of this process and busy time of every logical CPU (all processes), in seconds.
+struct CpuSample
+{
+  double              processUser   = 0.0;
+  double              processKernel = 0.0;
+  long long           pageFaults    = 0;
+  std::vector<double> processorBusy;
+  double              dpcInterrupt = 0.0; // all CPUs together
+};
+
+CpuSample sampleCpu(bool theWithProcessors)
+{
+  CpuSample aSample;
+#ifdef _WIN32
+  auto aSeconds = [](const FILETIME& theTime) {
+    return static_cast<double>((static_cast<unsigned long long>(theTime.dwHighDateTime) << 32)
+                               | theTime.dwLowDateTime)
+           * 1e-7;
+  };
+  FILETIME aCreation, anExit, aKernel, aUser;
+  if (GetProcessTimes(GetCurrentProcess(), &aCreation, &anExit, &aKernel, &aUser))
+  {
+    aSample.processUser   = aSeconds(aUser);
+    aSample.processKernel = aSeconds(aKernel);
+  }
+  PROCESS_MEMORY_COUNTERS aCounters = {};
+  if (GetProcessMemoryInfo(GetCurrentProcess(), &aCounters, sizeof(aCounters)))
+  {
+    aSample.pageFaults = static_cast<long long>(aCounters.PageFaultCount);
+  }
+  if (!theWithProcessors)
+  {
+    return aSample;
+  }
+  using QueryFunction               = LONG(WINAPI*)(int, void*, ULONG, ULONG*);
+  static const QueryFunction aQuery = reinterpret_cast<QueryFunction>(
+    GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQuerySystemInformation"));
+  const int                   aProcessorPerformanceClass = 8;
+  std::vector<ProcessorTimes> aTimes(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS));
+  ULONG                       aLength = 0;
+  if (aQuery != nullptr
+      && aQuery(aProcessorPerformanceClass,
+                aTimes.data(),
+                static_cast<ULONG>(aTimes.size() * sizeof(ProcessorTimes)),
+                &aLength)
+           == 0)
+  {
+    for (size_t i = 0; i < aLength / sizeof(ProcessorTimes); ++i)
+    {
+      aSample.processorBusy.push_back(static_cast<double>(aTimes[i].Kernel.QuadPart
+                                                          - aTimes[i].Idle.QuadPart
+                                                          + aTimes[i].User.QuadPart)
+                                      * 1e-7);
+      aSample.dpcInterrupt +=
+        static_cast<double>(aTimes[i].Dpc.QuadPart + aTimes[i].Interrupt.QuadPart) * 1e-7;
+    }
+  }
+#else
+  (void)theWithProcessors;
+#endif
+  return aSample;
+}
+
+// Returns the other logical CPU on the same physical core as theCpu (its SMT sibling), or -1.
+int smtSibling(int theCpu)
+{
+#ifdef _WIN32
+  if (theCpu < 0 || theCpu >= 64)
+  {
+    return -1;
+  }
+  DWORD aLength = 0;
+  GetLogicalProcessorInformationEx(RelationProcessorCore, nullptr, &aLength);
+  std::vector<char> aBuffer(aLength);
+  if (aLength == 0
+      || !GetLogicalProcessorInformationEx(
+        RelationProcessorCore,
+        reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(aBuffer.data()),
+        &aLength))
+  {
+    return -1;
+  }
+  for (DWORD anOffset = 0; anOffset < aLength;)
+  {
+    const auto* anInfo =
+      reinterpret_cast<const SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(aBuffer.data() + anOffset);
+    const KAFFINITY aMask = anInfo->Processor.GroupMask[0].Mask;
+    if ((aMask & (static_cast<KAFFINITY>(1) << theCpu)) != 0)
+    {
+      for (int i = 0; i < 64; ++i)
+      {
+        if (i != theCpu && (aMask & (static_cast<KAFFINITY>(1) << i)) != 0)
+        {
+          return i;
+        }
+      }
+      return -1;
+    }
+    anOffset += anInfo->Size;
+  }
+#else
+  (void)theCpu;
+#endif
+  return -1;
+}
+
+// Background load during the timed runs. background_cpus is the CPU time not used by this process
+// (other processes, interrupts and DPCs), as an average number of busy logical CPUs, and
+// dpc_interrupt_cpus the interrupt and DPC part of it. For single-threaded jobs, cpu_other_share
+// is the share of wall time the pinned CPU spent on other work, and sibling_busy_share the share
+// its SMT sibling was busy.
+void writeLoad(billet::JsonWriter& theJson,
+               const CpuSample&    theStart,
+               const CpuSample&    theEnd,
+               double              theSeconds,
+               int                 thePinnedCpu)
+{
+  const size_t aCount = std::min(theStart.processorBusy.size(), theEnd.processorBusy.size());
+  if (aCount == 0 || theSeconds <= 0.0)
+  {
+    return;
+  }
+  const double anOwn =
+    (theEnd.processUser + theEnd.processKernel) - (theStart.processUser + theStart.processKernel);
+  double aBusy = 0.0;
+  for (size_t i = 0; i < aCount; ++i)
+  {
+    aBusy += theEnd.processorBusy[i] - theStart.processorBusy[i];
+  }
+  theJson.key("load");
+  theJson.beginObject();
+  theJson.key("seconds").value(theSeconds);
+  theJson.key("background_cpus").value(std::max(0.0, (aBusy - anOwn) / theSeconds));
+  theJson.key("dpc_interrupt_cpus")
+    .value((theEnd.dpcInterrupt - theStart.dpcInterrupt) / theSeconds);
+  if (thePinnedCpu >= 0 && static_cast<size_t>(thePinnedCpu) < aCount)
+  {
+    const double aPinned =
+      theEnd.processorBusy[thePinnedCpu] - theStart.processorBusy[thePinnedCpu];
+    theJson.key("cpu").value(thePinnedCpu);
+    theJson.key("cpu_other_share").value(std::max(0.0, (aPinned - anOwn) / theSeconds));
+    const int aSibling = smtSibling(thePinnedCpu);
+    if (aSibling >= 0 && static_cast<size_t>(aSibling) < aCount)
+    {
+      theJson.key("sibling_cpu").value(aSibling);
+      theJson.key("sibling_busy_share")
+        .value((theEnd.processorBusy[aSibling] - theStart.processorBusy[aSibling]) / theSeconds);
+    }
+  }
+  theJson.endObject();
+}
+
+// Default CPU for single-threaded jobs: the first logical CPU of the last physical core on SMT
+// machines. Windows runs most background threads and interrupts on the first cores.
+int defaultCpu()
+{
+#ifdef _WIN32
+  return std::max(0, static_cast<int>(GetActiveProcessorCount(0)) - 2);
+#else
+  return 0;
+#endif
 }
 
 // Single-threaded mode turns off the parallel flags, routes OSD_Parallel to a one-thread OCCT pool
@@ -207,7 +384,10 @@ int runJob(const billet::JobOptions& theOptions,
   aJson.key("runs").value(theOptions.runs);
 
   std::string                        aPhase = "setup";
-  std::vector<double>                aTimes;
+  std::vector<double>                aTimes, aUserTimes, aKernelTimes;
+  std::vector<long long>             aPageFaults;
+  CpuSample                          aLoadStart, aLoadEnd;
+  double                             aLoadSeconds = 0.0;
   MemorySample                       aSetupMemory;
   bool                               anOk = false;
   std::string                        anError;
@@ -225,16 +405,25 @@ int runJob(const billet::JobOptions& theOptions,
       anOperation->run();
     }
 
-    aPhase = "run";
+    aPhase                             = "run";
+    aLoadStart                         = sampleCpu(true);
+    const Clock::time_point aRunsStart = Clock::now();
     for (int i = 0; i < theOptions.runs; ++i)
     {
       anOperation->prepareRun();
-      const Clock::time_point aStart = Clock::now();
+      const CpuSample         aBefore = sampleCpu(false);
+      const Clock::time_point aStart  = Clock::now();
       anOperation->run();
-      const Clock::time_point anEnd = Clock::now();
+      const Clock::time_point anEnd   = Clock::now();
+      const CpuSample         anAfter = sampleCpu(false);
       aTimes.push_back(std::chrono::duration<double>(anEnd - aStart).count());
+      aUserTimes.push_back(anAfter.processUser - aBefore.processUser);
+      aKernelTimes.push_back(anAfter.processKernel - aBefore.processKernel);
+      aPageFaults.push_back(anAfter.pageFaults - aBefore.pageFaults);
     }
-    anOk = true;
+    aLoadSeconds = std::chrono::duration<double>(Clock::now() - aRunsStart).count();
+    aLoadEnd     = sampleCpu(true);
+    anOk         = true;
   }
   catch (...)
   {
@@ -274,6 +463,10 @@ int runJob(const billet::JobOptions& theOptions,
   }
   aJson.key("times_s").value(aTimes);
   aJson.key("median_s").value(median(aTimes));
+  aJson.key("cpu_user_s").value(aUserTimes);
+  aJson.key("cpu_kernel_s").value(aKernelTimes);
+  aJson.key("page_faults").value(aPageFaults);
+  writeLoad(aJson, aLoadStart, aLoadEnd, aLoadSeconds, theOptions.parallel ? -1 : theCpu);
   aJson.key("memory");
   aJson.beginObject();
   aJson.key("setup_working_set_bytes").value(aSetupMemory.workingSet);
@@ -350,7 +543,7 @@ int main(int argc, char** argv)
   const std::string  aCommand = argv[1];
   billet::JobOptions anOptions;
   std::string        anOutFile;
-  int                aCpu      = 2;
+  int                aCpu      = defaultCpu();
   bool               aValidity = true;
   bool               aPinMain  = false;
   try

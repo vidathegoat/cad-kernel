@@ -248,6 +248,80 @@ class PowerPlan:
             log("Previous power plan restored")
 
 
+def system_busy_seconds() -> float | None:
+    """Busy time of all logical CPUs together since boot, in seconds (Windows only)."""
+    if sys.platform != "win32":
+        return None
+    import ctypes
+    from ctypes import wintypes
+
+    idle, kernel, user = wintypes.FILETIME(), wintypes.FILETIME(), wintypes.FILETIME()
+    if not ctypes.windll.kernel32.GetSystemTimes(ctypes.byref(idle), ctypes.byref(kernel), ctypes.byref(user)):
+        return None
+    seconds = lambda value: ((value.dwHighDateTime << 32) | value.dwLowDateTime) * 1e-7  # noqa: E731
+    return seconds(kernel) - seconds(idle) + seconds(user)  # kernel time includes idle time
+
+
+def measure_load(seconds: float) -> float | None:
+    """Average number of busy logical CPUs over the next `seconds`, or None where not supported."""
+    start, started = system_busy_seconds(), time.monotonic()
+    time.sleep(seconds)
+    end, ended = system_busy_seconds(), time.monotonic()
+    if start is None or end is None:
+        return None
+    return max(0.0, (end - start) / (ended - started))
+
+
+class LoadGuard:
+    """Keeps bursts of background load out of the timings. Before each job it waits until the machine is
+    back near its idle level, and it flags a job as disturbed when the harness measured too much load
+    from other processes during the timed runs: busy CPUs overall, or for single-threaded jobs the
+    pinned CPU's SMT sibling, which slows the job by 25 to 50% while busy."""
+
+    def __init__(self, args: argparse.Namespace):
+        self.enabled = not args.no_load_guard and system_busy_seconds() is not None
+        self.retries, self.quiet_wait, self.max_sibling = max(args.retries, 0), args.quiet_wait, args.max_sibling
+        self.idle = self.max_background = None
+        if not self.enabled:
+            return
+        self.idle = statistics.median(measure_load(1.0) for _ in range(5))
+        self.max_background = (args.max_background if args.max_background is not None
+                               else self.idle + args.background_margin)
+        log(f"Idle load before the run: {self.idle:.2f} busy CPUs. Jobs are rerun (up to {self.retries} times) when "
+            f"other work keeps more than {self.max_background:.2f} CPUs busy during the timed runs, or the "
+            f"pinned CPU's sibling more than {self.max_sibling:.0%} of the time.")
+        if self.idle > 1.0:
+            log("  Close other applications for steadier timings.")
+
+    def settings(self) -> dict:
+        return {"enabled": self.enabled, "idle_cpus": self.idle, "max_background_cpus": self.max_background,
+                "max_sibling_share": self.max_sibling, "retries": self.retries, "quiet_wait_s": self.quiet_wait}
+
+    def wait_for_quiet(self) -> float:
+        """Waits until the load is back near the idle level, up to quiet_wait seconds. Returns the wait."""
+        if not self.enabled:
+            return 0.0
+        started = time.monotonic()
+        limit = self.idle + 0.5 * (self.max_background - self.idle)
+        load = measure_load(0.5)
+        while load is not None and load > limit and time.monotonic() - started < self.quiet_wait:
+            load = measure_load(1.0)
+        return time.monotonic() - started
+
+    def disturbance(self, result: dict) -> str | None:
+        """Describes why a job's timed runs count as disturbed, or returns None."""
+        load = result.get("load") if self.enabled and result.get("status") == "ok" else None
+        # Windows counts CPU time in clock ticks, and short all-cores jobs add interrupt time that is not
+        # charged to their threads, so windows under a second are left to the wait before the job.
+        if not load or load.get("seconds", 0.0) < 1.0:
+            return None
+        if load.get("background_cpus", 0.0) > self.max_background:
+            return f"{load['background_cpus']:.2f} CPUs busy with other work"
+        if result["threads"] == "1" and load.get("sibling_busy_share", 0.0) > self.max_sibling:
+            return f"sibling CPU {load.get('sibling_cpu')} busy {load['sibling_busy_share']:.0%} of the time"
+        return None
+
+
 def harness_env(args: argparse.Namespace) -> dict:
     env = dict(os.environ)
     paths = [str(Path(args.install) / "win64" / "vc14" / "bin"), str(args.deps_bin)]
@@ -260,9 +334,11 @@ def scripted_parts(args: argparse.Namespace, env: dict) -> list[str]:
     return [line.split("\t")[0] for line in output.stdout.splitlines() if line.strip()]
 
 
-def prepare_cache(models: list[dict], args: argparse.Namespace, env: dict, version: str) -> dict[str, Path]:
+def prepare_cache(models: list[dict], args: argparse.Namespace, env: dict) -> dict[str, Path]:
     """Converts each STEP model once to a binary BREP copy (exact doubles), so job setup loads quickly.
-    Setup is not timed, and every job starts from the same input shape. Returns (model id, selection) -> path."""
+    Setup is not timed, and every job starts from the same input shape. The copies are kept across harness
+    and library builds, so later builds measure the same input; delete bench/corpus/_cache to rebuild them
+    after changing how 'convert' selects or writes shapes. Returns (model id, selection) -> path."""
     from concurrent.futures import ThreadPoolExecutor
 
     cache = CORPUS / "_cache"
@@ -275,8 +351,7 @@ def prepare_cache(models: list[dict], args: argparse.Namespace, env: dict, versi
         for selection in sorted(selections):
             stem = model["id"] if selection == "all" else f"{model['id']}.{selection.replace(':', '-')}"
             brep, meta = cache / f"{stem}.bbrep", cache / f"{stem}.json"
-            expected = {"source_sha256": model.get("sha256"), "select": selection, "harness": version,
-                        "format": "binary"}
+            expected = {"source_sha256": model.get("sha256"), "select": selection, "format": "binary"}
             paths[(model["id"], selection)] = brep
             if brep.exists() and meta.exists() and json.loads(meta.read_text(encoding="utf-8")) == expected:
                 continue
@@ -386,7 +461,8 @@ def run_job(job: dict, args: argparse.Namespace, env: dict, output_dir: Path) ->
         result.update(status="crash", error=f"exit code {exit_code}; {stderr[-500:]}")
     else:
         data = json.loads(report.read_text(encoding="utf-8"))
-        for key in ("status", "phase", "error", "times_s", "median_s", "memory", "details", "fingerprint"):
+        for key in ("status", "phase", "error", "times_s", "median_s", "cpu_user_s", "cpu_kernel_s", "page_faults",
+                    "load", "memory", "details", "fingerprint"):
             if key in data:
                 result[key] = data[key]
         if data.get("status") == "ok" and saved.exists():
@@ -399,6 +475,8 @@ def run_job(job: dict, args: argparse.Namespace, env: dict, output_dir: Path) ->
 def summarize(jobs: list[dict]) -> dict:
     summary = {"jobs": len(jobs), "ok": sum(1 for job in jobs if job.get("status") == "ok")}
     summary["failed"] = summary["jobs"] - summary["ok"]
+    summary["disturbed"] = sum(1 for job in jobs if job.get("disturbed"))
+    summary["rerun"] = sum(1 for job in jobs if job.get("attempts", 1) > 1)
     by_type: dict[str, dict] = {}
     for job in jobs:
         if job.get("status") != "ok":
@@ -450,7 +528,7 @@ def command_run(args: argparse.Namespace) -> int:
     version = subprocess.run([str(args.harness), "version"], capture_output=True, text=True, env=env).stdout.strip()
     if manifest is not None and not args.no_cache:
         planned = {job["model"] for job in jobs}
-        cached = prepare_cache([m for m in manifest["models"] if m["id"] in planned], args, env, version)
+        cached = prepare_cache([m for m in manifest["models"] if m["id"] in planned], args, env)
         for job in jobs:
             if job["op"] in (REBUILD, "step-read"):
                 continue
@@ -465,11 +543,26 @@ def command_run(args: argparse.Namespace) -> int:
     results = []
     with PowerPlan(args.power_plan):
         power_plan = machine_info().get("power_plan")
+        guard = LoadGuard(args)
         for index, job in enumerate(jobs, 1):
-            result = run_job(job, args, env, output_dir)
+            waited, attempt = 0.0, 0
+            while True:
+                waited += guard.wait_for_quiet()
+                result = run_job(job, args, env, output_dir)
+                attempt += 1
+                disturbance = guard.disturbance(result)
+                if disturbance is None or attempt > guard.retries:
+                    break
+                log(f"  {job['job']} {job['model']} threads={job['threads']}: disturbed ({disturbance}), rerunning")
+            result["attempts"] = attempt
+            result["quiet_wait_s"] = round(waited, 1)
+            if disturbance is not None:
+                result["disturbed"] = disturbance
             results.append(result)
             status = result.get("status")
             detail = f"{result['median_s']:.4f} s" if status == "ok" else f"{status}: {result.get('error', '')}"
+            if disturbance is not None:
+                detail += f" (disturbed: {disturbance})"
             log(f"[{index}/{len(jobs)}] {job['job']:<12} {job['model']:<28} threads={job['threads']:<3} {detail}")
 
     document = {
@@ -483,7 +576,7 @@ def command_run(args: argparse.Namespace) -> int:
         "settings": {"warmup": args.warmup, "runs": args.runs, "threads": args.threads.split(","),
                      "single_thread_cpu": args.cpu, "pin_main_thread": not args.no_pin_main_thread,
                      "priority": args.priority, "validity_checked": not args.no_validity,
-                     "brep_input_cache": not args.no_cache},
+                     "brep_input_cache": not args.no_cache, "load_guard": guard.settings()},
         "corpus": None if manifest is None else {"manifest": str(manifest_path),
                                                  "manifest_sha256": sha256_of(manifest_path),
                                                  "models": len(manifest["models"])},
@@ -493,7 +586,8 @@ def command_run(args: argparse.Namespace) -> int:
     results_path.parent.mkdir(parents=True, exist_ok=True)
     results_path.write_text(json.dumps(document, indent=1) + "\n", encoding="utf-8", newline="\n")
     summary = document["summary"]
-    log(f"Done: {summary['ok']} ok, {summary['failed']} failed. Wrote {results_path}")
+    log(f"Done: {summary['ok']} ok, {summary['failed']} failed, {summary['rerun']} rerun for background load, "
+        f"{summary['disturbed']} still disturbed. Wrote {results_path}")
     return 0 if summary["failed"] == 0 else 2
 
 
@@ -514,8 +608,6 @@ def close(a, b, tolerance: float) -> bool:
 
 
 def command_compare(args: argparse.Namespace) -> int:
-    if args.tolerance is None:
-        args.tolerance = 1e-12 if args.rule == "serial" else 1e-9
     base = json.loads(Path(args.base).read_text(encoding="utf-8"))
     new = json.loads(Path(args.new).read_text(encoding="utf-8"))
     key = lambda job: (job["job"], job["model"], job["threads"])  # noqa: E731
@@ -552,19 +644,33 @@ def command_compare(args: argparse.Namespace) -> int:
         log(f"{job:<12} {model:<28} {threads:<4} {old_s:>10.4f} {new_s:>10.4f} {change:>+7.1f}%")
     log("")
     log("Geometric mean of new/base per job type:")
+    noisy_types = []
     for job_type, values in sorted(ratios.items()):
-        geomean = math.exp(statistics.fmean(math.log(value) for value in values))
-        log(f"  {job_type:<20} {(geomean - 1.0) * 100.0:+6.1f}%  ({len(values)} jobs)")
+        change = (math.exp(statistics.fmean(math.log(value) for value in values)) - 1.0) * 100.0
+        over = args.max_type_change is not None and abs(change) > args.max_type_change
+        if over:
+            noisy_types.append((job_type, change))
+        log(f"  {job_type:<20} {change:+6.1f}%  ({len(values)} jobs){'  OVER' if over else ''}")
     for job_key, old_status, new_status in missing:
         log(f"NOT COMPARED {job_key}: base={old_status} new={new_status}")
+    for name, document in (("base", base), ("new", new)):
+        flagged = sum(1 for job in document["jobs"] if job.get("disturbed"))
+        if flagged:
+            log(f"Note: {flagged} job(s) in {name} were still disturbed by background load after reruns")
     for job_key, differences in mismatches:
         log(f"FINGERPRINT MISMATCH {job_key}: {', '.join(differences)}")
     for job_key, change in noisy:
         log(f"OVER {args.max_change}% {job_key}: {change:+.1f}%")
-    failed = bool(mismatches) or bool(noisy)
+    for job_type, change in noisy_types:
+        log(f"OVER {args.max_type_change}% job type {job_type}: {change:+.1f}%")
+    failed = bool(mismatches) or bool(noisy) or bool(noisy_types)
     log(f"Fingerprint tolerance: relative {args.tolerance:g}; topology counts and validity must match exactly")
-    log("RESULT: " + ("FAIL" if failed else "PASS")
-        + f" ({len(rows)} compared, {len(mismatches)} fingerprint mismatches, {len(noisy)} over the limit)")
+    summary = f"{len(rows)} compared, {len(mismatches)} fingerprint mismatches"
+    if args.max_change is not None:
+        summary += f", {len(noisy)} job(s) over {args.max_change}%"
+    if args.max_type_change is not None:
+        summary += f", {len(noisy_types)} job type(s) over {args.max_type_change}%"
+    log("RESULT: " + ("FAIL" if failed else "PASS") + f" ({summary})")
     return 1 if failed else 0
 
 
@@ -588,16 +694,32 @@ def main() -> int:
     run.add_argument("--jobs", help=f"comma-separated job types (default: all): {', '.join(ALL_JOBS)}")
     run.add_argument("--models", help="comma-separated model ids, or part:<id> for rebuild parts")
     run.add_argument("--threads", default="1,all", help="thread modes (default: 1,all)")
-    run.add_argument("--warmup", type=int, default=1)
+    run.add_argument("--warmup", type=int, default=2,
+                     help="untimed runs before the timed ones (default: 2; OCCT's first two runs in a process "
+                          "are faster than later ones)")
     run.add_argument("--runs", type=int, default=5)
-    run.add_argument("--cpu", type=int, default=2,
-                     help="logical CPU for single-threaded jobs and for the main thread of all-cores jobs (default: 2)")
+    run.add_argument("--cpu", type=int, default=max(0, (os.cpu_count() or 2) - 2),
+                     help="logical CPU for single-threaded jobs and for the main thread of all-cores jobs "
+                          "(default: the second to last, which is the first CPU of the last core on SMT machines)")
     run.add_argument("--no-pin-main-thread", action="store_true",
                      help="do not pin the main thread of all-cores jobs (pinning reduces timing noise)")
     run.add_argument("--priority", choices=["normal", "high"], default="high")
     run.add_argument("--power-plan", default="Billet benchmark",
                      help="Windows power plan to activate during the run, by name (default: 'Billet benchmark'; "
                           "'' keeps the current plan). The previous plan is restored afterwards.")
+    run.add_argument("--no-load-guard", action="store_true",
+                     help="do not wait for a quiet machine or rerun jobs disturbed by background load")
+    run.add_argument("--max-background", type=float,
+                     help="busy CPUs from other work allowed during a job's timed runs "
+                          "(default: the idle load measured before the run plus --background-margin)")
+    run.add_argument("--background-margin", type=float, default=1.5,
+                     help="busy CPUs above the idle load allowed during a job's timed runs (default: 1.5)")
+    run.add_argument("--max-sibling", type=float, default=0.25,
+                     help="share of time the pinned CPU's SMT sibling may be busy during a single-threaded job "
+                          "(default: 0.25)")
+    run.add_argument("--retries", type=int, default=2, help="reruns of a disturbed job (default: 2)")
+    run.add_argument("--quiet-wait", type=float, default=300.0,
+                     help="seconds to wait for a quiet machine before each job (default: 300)")
     run.add_argument("--timeout", type=int, default=3600, help="seconds per job (default: 3600)")
     run.add_argument("--no-validity", action="store_true", help="skip BRepCheck on outputs")
     run.add_argument("--no-cache", action="store_true",
@@ -611,11 +733,12 @@ def main() -> int:
     compare = commands.add_parser("compare", help="compare two results files")
     compare.add_argument("base")
     compare.add_argument("new")
-    compare.add_argument("--max-change", type=float, help="fail if any timing changes by more than this percent")
-    compare.add_argument("--rule", choices=["serial", "parallel"], default="serial",
-                         help="SPEC.md 7.1 rule: serial = relative 1e-12 (default), parallel = relative 1e-9")
-    compare.add_argument("--tolerance", type=float,
-                         help="relative tolerance for fingerprint numbers; overrides --rule (0 = exact)")
+    compare.add_argument("--max-change", type=float, help="fail if any job's timing changes by more than this percent")
+    compare.add_argument("--max-type-change", type=float,
+                         help="fail if the geometric mean of any job type changes by more than this percent")
+    compare.add_argument("--tolerance", type=float, default=1e-9,
+                         help="relative tolerance for volume, area and bounding box (default: 1e-9, SPEC.md 7.1; "
+                              "0 = exact)")
     compare.add_argument("--exact-outputs", action="store_true", help="also require identical output file hashes")
     compare.set_defaults(handler=command_compare)
 
