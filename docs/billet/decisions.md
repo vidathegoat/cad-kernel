@@ -116,6 +116,14 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_GENERATOR_INSTANC
 - **Decision:** for every change, serial or parallel, volume, area and bounding box must agree within a relative 1e-9, and topology counts and validity must match exactly. `compare` defaults to 1e-9, and its `--rule` option was removed.
 - **Why:** the 1e-12 serial rule rejected unmodified 8.0.1. Over 20 to 40 processes of the same build, the housing part's volume varied by up to 5e-10 relative and its area by up to 8.5e-11. Its bounding box and topology never changed. The bottle part varies by about 1e-14. The other six parts were bit-identical, and so were 604 of 612 jobs between the two full runs.
 
+## 2026-10-14: Baseline results (SPEC.md 5.5)
+
+- **Runs:** `bench/results/baseline-8.0.1.json` and `noise-check-8.0.1.json` are two full runs of unmodified 8.0.1, back to back on 2026-10-14 from 02:20 to 09:40, with the desktop's always-on applications running. All 612 jobs succeeded in both. Each run took about 3 hours 40 minutes.
+- **Noise gate passed:** the geometric means of all 22 job types, per thread mode, agree within 2%. The largest differences are `rebuild` all cores (-1.6%) and `mesh-coarse` all cores (-1.0%). The other 20 are within 0.9%.
+- **Per job, for information:** 95% of jobs agree within 5% and 80% within 2%, with a median difference of 0.8%. The 30 jobs that differ by more than 5% all have medians under 0.6 s, 25 of them under 0.1 s.
+- **Fingerprints:** all 612 jobs agree within 1e-9, with identical topology counts and validity.
+- **Load guard:** in the baseline run, one job was rerun and none stayed disturbed. During the noise check, Windows Update installed the monthly updates from 07:22 to about 07:40, and its installer and the search indexer kept about 1.5 CPUs busy. Four jobs were rerun then and one later. Two stayed flagged as disturbed; they differ from the baseline by +3.2% and +1.7%.
+
 ## Open questions
 
 1. Whether the first release ships prebuilt binaries or source only (SPEC.md 10.2).
