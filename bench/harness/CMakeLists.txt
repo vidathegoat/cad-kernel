@@ -29,4 +29,8 @@ if (WIN32)
 endif()
 if (MSVC)
   target_compile_options(billet-bench PRIVATE /W4 /permissive- /utf-8)
+  # A PDB in Release, for the profiler (bench/runner/billet_profile.py). /Zi does not change the code;
+  # /DEBUG turns off /OPT:REF and /OPT:ICF by default, so they are restated.
+  target_compile_options(billet-bench PRIVATE $<$<CONFIG:Release>:/Zi>)
+  target_link_options(billet-bench PRIVATE $<$<CONFIG:Release>:/DEBUG /OPT:REF /OPT:ICF>)
 endif()

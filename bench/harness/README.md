@@ -40,6 +40,20 @@ python bench/runner/billet_bench.py compare bench/results/baseline-8.0.1.json be
 
 `compare` lists the timing change per job and the geometric mean per job type, and checks fingerprints by the SPEC.md 7.1 rule: topology counts and validity must match exactly, and volume, area and bounding box must agree within a relative 1e-9 (`--tolerance` changes it). Add `--max-type-change 2` to fail when any job type's geometric mean changes by more than 2% (the SPEC.md 5.5 noise gate), `--max-change 5` to fail on any single job changing by more than 5%, and `--exact-outputs` to also require identical output files (upstream OCCT does not guarantee this between runs).
 
+## Profile
+
+`bench/runner/billet_profile.py` profiles one job with the command-line collector of Visual Studio's Performance Profiler (CPU sampling with call stacks) and reports hotspots (SPEC.md section 6). It needs Visual Studio 2022, the Windows Performance Toolkit (`xperf.exe`) and the Debugging Tools for Windows (`dbghelp.dll`, `symsrv.dll`), and a Billet build and harness with PDB files (see `docs/billet/decisions.md`).
+
+```powershell
+python bench/runner/billet_profile.py record --job bool-fuse --model freecad-cup
+```
+
+```powershell
+python bench/runner/billet_profile.py report C:/billet-results/profiles/<date>/*.bool-fuse.st.json.gz
+```
+
+`record` runs the job as the runner does, with 2 warm-up and 5 timed runs, more for short jobs and fewer for long ones, and saves the samples taken inside the operation to `C:/billet-results/profiles/<date>/<model>.<job>.<st|mt>.json.gz`. Add `--threads all` for all cores. `report` lists the top functions by self time with their call paths; with several profiles, each model counts equally. `--inclusive N` adds the top functions by inclusive time, `--callers NAME` lists the call paths through a function, and `--inline` charges time to inlined functions instead of the functions they were inlined into. Do not run `record` while the benchmark runs: it finds the harness process by name.
+
 ## Jobs
 
 | Job | What is timed | Parameters (manifest) |
