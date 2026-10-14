@@ -124,6 +124,27 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_GENERATOR_INSTANC
 - **Fingerprints:** all 612 jobs agree within 1e-9, with identical topology counts and validity.
 - **Load guard:** in the baseline run, one job was rerun and none stayed disturbed. During the noise check, Windows Update installed the monthly updates from 07:22 to about 07:40, and its installer and the search indexer kept about 1.5 CPUs busy. Four jobs were rerun then and one later. Two stayed flagged as disturbed; they differ from the baseline by +3.2% and +1.7%.
 
+## 2026-10-14: PDB files in the Release build (Phase 2)
+
+- **Decision:** the Release build also writes PDB files, so that profiles show function names. The configure command in this file gains five flags:
+
+  ```
+  "-DCMAKE_CXX_FLAGS_RELEASE=/MD /O2 /Ob2 /DNDEBUG /Zi" "-DCMAKE_C_FLAGS_RELEASE=/MD /O2 /Ob2 /DNDEBUG /Zi" "-DCMAKE_SHARED_LINKER_FLAGS_RELEASE=/INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF" "-DCMAKE_EXE_LINKER_FLAGS_RELEASE=/INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF" "-DCMAKE_MODULE_LINKER_FLAGS_RELEASE=/INCREMENTAL:NO /DEBUG /OPT:REF /OPT:ICF"
+  ```
+
+  The harness does the same in `bench/harness/CMakeLists.txt`.
+- **Why not upstream's option:** `BUILD_FORCE_RelWithDebInfo` also adds `/Ob1`, which inlines less, so the profiled code would differ from the benchmarked code. `/Zi` does not change code generation. `/DEBUG` turns off `/OPT:REF` and `/OPT:ICF` by default, so both are restated.
+- **Code unchanged:** compared with the binaries the baseline was measured with, every DLL's code section has the same size and the same instructions. The only differing bytes, in every DLL and executable, are RIP-relative addresses of read-only data, which moved by 104 to 240 bytes because the PDB path is stored in `.rdata`. In two DRAW plugin DLLs, `.data` also moved by one page. The baseline results therefore remain valid. The build took 9.5 minutes with no warnings. The previous binaries are kept in `C:/billet-results/binaries/8.0.1-release-nopdb`.
+
+## 2026-10-14: Profiler (SPEC.md 6)
+
+- **Tool:** Visual Studio 2022's Performance Profiler, through its command-line collector `VSDiagnostics.exe` with the CPU sampling agent at 4,000 samples per second with call stacks. It runs without administrator rights. Intel VTune is not installed.
+- **Script:** `bench/runner/billet_profile.py record` runs one benchmark job under the collector, with the same job parameters and input as the runner. `xperf` (Windows Performance Toolkit) turns the trace into text, and DbgHelp (Debugging Tools for Windows) resolves the harness process's frames, inline functions included. Microsoft's symbol server provides the system DLL symbols, cached in `C:/billet-symbols`. `report` prints hotspots of one or more saved profiles. Profiles are saved in `C:/billet-results/profiles`.
+- **What counts:** only samples inside the operation's `run()`: on the main thread, samples whose stack is inside it, and on other threads, samples taken while it runs. Setup, `prepareRun()` and the fingerprint are excluded.
+- **Runs:** 2 warm-up and 5 timed runs as in the benchmark, with more timed runs for short jobs (at least 10 s of operation time, about 40,000 samples) and fewer for long ones (at most 90 s). The warm-up runs are profiled too.
+- **Shares:** with several models, a function's share is the mean of its share per model, so each model counts equally, as in the benchmark's geometric means. Time in `malloc`, `calloc`, `free` and the Windows heap (`ucrtbase.dll`, `ntdll.dll`) is reported as one entry, `[heap]`, together with the kernel time it causes; other kernel time is `[kernel]`, and TBB workers waiting for work are `[tbb]`.
+- **Phase 2 run:** 66 profiles on 2026-10-14, 53 single-threaded (3 to 5 models per job type) and 13 on all cores, in 87 minutes with the desktop in use. The results are in `docs/billet/perf-log.md`; the profiles (100 MB) stay in `C:/billet-results/profiles/phase2`. The symbol cache in `C:/billet-symbols` holds 4.7 GB, mostly system PDBs fetched by a first trial with `xperf -symbols`; it can be deleted, and the profiler then downloads only what it needs.
+
 ## Open questions
 
 1. Whether the first release ships prebuilt binaries or source only (SPEC.md 10.2).
