@@ -29,6 +29,7 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_GENERATOR_INSTANC
 ## 2026-10-12: "Modified for Billet." marker in files that are not C++
 
 - SPEC.md section 2 asks for `// Modified for Billet.` near the header of each modified upstream file. Where `//` is not a comment, the same text is written in that file's comment syntax: `# Modified for Billet.` in `.gitignore`, `<!-- Modified for Billet. -->` in Markdown.
+- In C++ files, the line goes after the license header, separated by blank lines, so the header block itself stays unchanged (first used on 2026-10-15 in `ChFi3d.cxx`).
 
 ## 2026-10-12: `.gitignore` allows Billet's paths
 
@@ -144,6 +145,18 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A x64 "-DCMAKE_GENERATOR_INSTANC
 - **Runs:** 2 warm-up and 5 timed runs as in the benchmark, with more timed runs for short jobs (at least 10 s of operation time, about 40,000 samples) and fewer for long ones (at most 90 s). The warm-up runs are profiled too.
 - **Shares:** with several models, a function's share is the mean of its share per model, so each model counts equally, as in the benchmark's geometric means. Time in `malloc`, `calloc`, `free` and the Windows heap (`ucrtbase.dll`, `ntdll.dll`) is reported as one entry, `[heap]`, together with the kernel time it causes; other kernel time is `[kernel]`, and TBB workers waiting for work are `[tbb]`.
 - **Phase 2 run:** 66 profiles on 2026-10-14, 53 single-threaded (3 to 5 models per job type) and 13 on all cores, in 87 minutes with the desktop in use. The results are in `docs/billet/perf-log.md`; the profiles (100 MB) stay in `C:/billet-results/profiles/phase2`. The symbol cache in `C:/billet-symbols` holds 4.7 GB, mostly system PDBs fetched by a first trial with `xperf -symbols`; it can be deleted, and the profiler then downloads only what it needs.
+
+## 2026-10-15: Test grid tests that fail at random
+
+- **Finding:** upstream marks some known failures as random with `TODO ?` (19 test files). Such a test passes or fails from run to run on the same build. `offset compshape A3` gave the correct result 12 times and a faulty one 8 times out of 20 runs, both with unmodified 8.0.1 and with the first Phase 3 change.
+- **Decision:** a status change of such a test does not by itself count as a regression or as an output change (SPEC.md 7.1). It is checked by running the test repeatedly with both builds, or by showing that the test does not reach the changed code.
+
+## 2026-10-16: Speed check after a Windows update (amends SPEC.md 7.1)
+
+- **Finding:** `baseline-8.0.1.json` was measured on 2026-10-14 from 02:20. Later that morning, Windows installed the October cumulative update (KB5127648, OS build 26200.9711), a .NET update, two Realtek audio drivers and a Defender platform update, and restarted at 10:49. Since then, unmodified 8.0.1 runs slower on the maintainer's desktop. Single-threaded jobs that take at least a second run 4 to 7% longer in STEP read and write, check and booleans, and 0 to 5% longer in meshing. All-cores jobs vary more, and short jobs change less. Over the 240 jobs measured again on 2026-10-16, the geometric means per job type and thread mode moved by −1.9 to +4.8%. Memory integrity (VBS) was on before and after the restart, and the benchmark power plan is unchanged.
+- **Effect:** against the baseline, the full run of the first Phase 3 change showed STEP read 3.3 to 3.4% slower and check 2.2 to 2.5% slower. Both exceed the 2% limit of SPEC.md 7.1, although neither operation reaches the changed code.
+- **Decision:** when the machine has changed since the latest accepted results (a Windows, driver or firmware update), the speed check compares the change with the previous build timed on the same night. A subset of models runs twice, back to back: first with the previous build's DLLs, then with the new ones. For the first change, it was 12 models and the 8 rebuild parts (240 jobs). The change's full run, measured after the update, becomes the latest accepted results for the next cycle.
+- **Before a timing run:** compare the Windows Update history with the date of the latest accepted results. `Get-HotFix` does not list drivers; the history in Settings, or `Microsoft.Update.Session` in PowerShell, does.
 
 ## Open questions
 

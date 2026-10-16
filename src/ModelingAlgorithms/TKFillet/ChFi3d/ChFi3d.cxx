@@ -14,6 +14,8 @@
 // Alternatively, this file may be used under the terms of Open CASCADE
 // commercial license or contractual agreement.
 
+// Modified for Billet.
+
 #include <ChFi3d.hxx>
 
 #include <BRep_Tool.hxx>
@@ -155,6 +157,25 @@ ChFiDS_TypeOfConcavity ChFi3d::DefineConnectType(const TopoDS_Edge& E,
   }
 }
 
+//=======================================================================
+// function : nbSamplesOfFace
+// purpose  : Returns BRepTopAdaptor_TopolTool::NbSamples() of the face.
+//            For a plane it is always 10 x 10, so the adaptor and the tool,
+//            whose construction projects every edge of the face onto the
+//            plane, are not built.
+//=======================================================================
+static int nbSamplesOfFace(const TopoDS_Face& theFace)
+{
+  if (BRepAdaptor_Surface(theFace, false).GetType() == GeomAbs_Plane)
+  {
+    return 100;
+  }
+  BRepAdaptor_Surface                   aBAS(theFace);
+  occ::handle<BRepAdaptor_Surface>      aBAHS = new BRepAdaptor_Surface(aBAS);
+  occ::handle<BRepTopAdaptor_TopolTool> aTool = new BRepTopAdaptor_TopolTool(aBAHS);
+  return aTool->NbSamples();
+}
+
 //=================================================================================================
 
 bool ChFi3d::IsTangentFaces(const TopoDS_Edge&  theEdge,
@@ -230,15 +251,9 @@ bool ChFi3d::IsTangentFaces(const TopoDS_Edge&  theEdge,
   }
 
   // Computation of the number of samples on the edge.
-  BRepAdaptor_Surface                   aBAS1(theFace1);
-  BRepAdaptor_Surface                   aBAS2(theFace2);
-  occ::handle<BRepAdaptor_Surface>      aBAHS1      = new BRepAdaptor_Surface(aBAS1);
-  occ::handle<BRepAdaptor_Surface>      aBAHS2      = new BRepAdaptor_Surface(aBAS2);
-  occ::handle<BRepTopAdaptor_TopolTool> aTool1      = new BRepTopAdaptor_TopolTool(aBAHS1);
-  occ::handle<BRepTopAdaptor_TopolTool> aTool2      = new BRepTopAdaptor_TopolTool(aBAHS2);
-  int                                   aNbSamples1 = aTool1->NbSamples();
-  int                                   aNbSamples2 = aTool2->NbSamples();
-  int                                   aNbSamples  = std::max(aNbSamples1, aNbSamples2);
+  int aNbSamples1 = nbSamplesOfFace(theFace1);
+  int aNbSamples2 = nbSamplesOfFace(theFace2);
+  int aNbSamples  = std::max(aNbSamples1, aNbSamples2);
 
   // Computation of the continuity.
   double aPar;

@@ -272,4 +272,32 @@ Every operation gives the same topology and agrees within 1e-12 in volume and ar
 
 ## Entries
 
-None yet.
+### 2026-10-15: fillet: planar shortcut in `ChFi3d::IsTangentFaces` (H1)
+
+- **Hotspot:** `ChFi3d::IsTangentFaces` (TKFillet) takes 31% of fillet time (mean of the five profiled models, 77% in nist-ftc-09), 17% of rebuild (83% in the heatsink part) and 7% of shell. The fillet builder calls it while chaining edges (`ChFi3d_Builder::FaceTangency`, `PerformExtremity`) and counting sharp edges at vertices (`ChFi3d_NumberOfSharpEdges`); shell calls it for every edge in `BRepOffset_Analyse::Perform`. 85 to 98% of its time goes into building a `BRepAdaptor_Surface` and a `BRepTopAdaptor_TopolTool` for each of the two faces.
+- **Expected change and gain** (written before coding): the adaptors and tools are built only to read `NbSamples()`, the number of samples along the edge. For a plane it is always 10 × 10 = 100 (`BRepTopAdaptor_TopolTool::ComputeSamplePoints`), yet building them projects every edge of the face onto the plane twice: once in `BRepTools::UVBounds` and once for each edge's `BRepAdaptor_Curve2d`. A file-local helper returns 100 for a face whose surface type is `GeomAbs_Plane` without building either, and other faces go through the same code as before. The sample loop therefore runs with the same count, and results stay the same. The projections alone (`CurveOnPlane` under the constructors) take 66% of the heatsink rebuild, 67% of the nist-ftc-09 fillet and 42% of the ender3 housing fillet. Expected gains:
+  - heatsink rebuild: −65 to −80%
+  - rebuild: −12 to −18% (geometric mean)
+  - fillet: −25 to −35% (geometric mean over the profiled models)
+  - shell: −5 to −7%
+  - other operations: unchanged, because they do not call the function
+
+  Behavior can differ only on invalid input. If an edge of a planar face cannot be projected or has a reversed parameter range, building the tool raised an exception, and the helper does not.
+- **Change:** in `src/ModelingAlgorithms/TKFillet/ChFi3d/ChFi3d.cxx`, the new file-local function `nbSamplesOfFace` returns 100 when `BRepAdaptor_Surface(face, false).GetType()` is `GeomAbs_Plane`. That adaptor is built without the face's bounds, and the type depends only on the surface. For other faces, the function builds the adaptor and the tool as before. `IsTangentFaces` calls it for both faces. Only `TKFillet.dll` changes.
+- **Before -> after:** geometric means, single-threaded and all cores.
+  - Full run on 2026-10-16 (`bench/results/2026-10-16-h1.json`, 612 jobs) against `baseline-8.0.1.json`:
+    - fillet: −35.1% and −35.2% over 28 models (kicad heatsink −81%, nist-ftc-09 −76%, ender3 assembly −74%)
+    - rebuild: −28.2% and −29.2% (heatsink −82%, bottle −38%, bracket −29%; the other five parts within noise)
+    - shell: −5.3% and −4.9% over 18 models (thelio-mega −36%, launch keyboard and jubilee frame −13%)
+    - step-read: +3.3% and +3.4%; check: +2.5% and +2.2%; the other job types −1.6 to +2.0%. The machine itself became slower after a Windows update on 2026-10-14, after the baseline was measured (decisions.md, 2026-10-16), so these differences do not come from this change.
+  - Unmodified 8.0.1, then this change, timed back to back on the same night (`2026-10-16-base-subset.json` and `2026-10-16-h1-subset2.json`; 12 models and the 8 rebuild parts, 240 jobs):
+    - fillet: −51.3% and −50.5% over 11 models
+    - rebuild: −26.6% and −29.2%
+    - shell: −3.4% and −3.4% over 9 models
+    - every other job type: −0.7 to +1.2%
+- **Verification:**
+  - Fingerprints: all 612 jobs of the full run and all 240 of the same-night runs are within 1e-9 of their reference, with identical topology counts and validity.
+  - Test grid: no test that passed in the baseline fails, in one run with this build and two with the check build below. Two tests that upstream marks as failing at random (`TODO ?`) passed in some runs. `offset compshape A3` gave the correct result 12 times and the faulty one 8 times out of 20, both with unmodified 8.0.1 and with this change. `pipe bugs bug24909_2` does not reach the fillet code.
+  - Equivalence: a temporary build also ran the old construction for every planar face. It checked at least 149,515 calls across the test grid and the rebuild, fillet and shell jobs. The tool returned 100 every time and never raised an exception.
+  - Speed: fillet is 35% faster in the full run and 51% faster on the same-night subset, against the 3% required. Against unmodified 8.0.1 timed the same night, no other operation is slower by more than 2% (largest: bool-cut single-threaded, +1.2%). Against the baseline, step-read and check are 2.2 to 3.4% slower, but on the 12 same-night models, unmodified 8.0.1 differs from the baseline as much as this change does (step-read +1.8% and +2.1%, against +1.9% and +2.0%). Only the fillet builder and `BRepOffset_Analyse` (shell) call `IsTangentFaces`.
+- **Result:** accepted. Fillet (−35%) is at the top of the expected range and rebuild (−28% and −29%) beats it; shell gained less than expected on the same night (−3.4% against −5 to −7%). `2026-10-16-h1.json` is the latest accepted results for the next cycle.
